@@ -114,7 +114,7 @@
 ;;	(define-key global-map [(control f11)] 'cscope-prev-symbol)
 ;;	(define-key global-map [(control f12)] 'cscope-prev-file)
 ;;      (define-key global-map [(meta f9)]  'cscope-display-buffer)
-;;      (defin-ekey global-map [(meta f10)] 'cscope-display-buffer-toggle)
+;;      (define-key global-map [(meta f10)] 'cscope-display-buffer-toggle)
 ;;
 ;; 6. Restart (X)Emacs.  That's it.
 ;;
