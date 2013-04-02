@@ -927,6 +927,7 @@ Must end with a newline.")
   (define-key cscope-list-entry-keymap "g" 'cscope-find-global-definition)
   (define-key cscope-list-entry-keymap "G"
     'cscope-find-global-definition-no-prompting)
+  (define-key cscope-list-entry-keymap "=" 'cscope-find-assignments-to-this-symbol)
   (define-key cscope-list-entry-keymap "c" 'cscope-find-functions-calling-this-function)
   (define-key cscope-list-entry-keymap "C" 'cscope-find-called-functions)
   (define-key cscope-list-entry-keymap "t" 'cscope-find-this-text-string)
@@ -1119,6 +1120,7 @@ directory should begin.")
   (define-key cscope:map "\C-csd" 'cscope-find-global-definition)
   (define-key cscope:map "\C-csg" 'cscope-find-global-definition)
   (define-key cscope:map "\C-csG" 'cscope-find-global-definition-no-prompting)
+  (define-key cscope:map "\C-cs=" 'cscope-find-assignments-to-this-symbol)
   (define-key cscope:map "\C-csc" 'cscope-find-functions-calling-this-function)
   (define-key cscope:map "\C-csC" 'cscope-find-called-functions)
   (define-key cscope:map "\C-cst" 'cscope-find-this-text-string)
@@ -1154,6 +1156,8 @@ directory should begin.")
 		    [ "Find global definition" cscope-find-global-definition t ]
 		    [ "Find global definition no prompting"
 		      cscope-find-global-definition-no-prompting t ]
+		    [ "Find assignments to symbol"
+                      cscope-find-assignments-to-this-symbol t ]
 		    [ "Find functions calling a function"
 		      cscope-find-functions-calling-this-function t ]
 		    [ "Find called functions" cscope-find-called-functions t ]
@@ -2422,6 +2426,20 @@ file."
 		 (list "-8" symbol) nil 'cscope-process-filter
 		 'cscope-process-sentinel)
     ))
+
+
+(defun cscope-find-assignments-to-this-symbol (symbol)
+  "Locate assignments to a symbol in the source code."
+  (interactive (list
+		(cscope-prompt-for-symbol "Find assignments to this symbol: " nil)
+		))
+  (let ( (cscope-adjust t) )	 ;; Use fuzzy matching.
+    (setq cscope-symbol symbol)
+    (cscope-call (format "Finding assignments to symbol: %s" symbol)
+		 (list "-9" symbol) nil 'cscope-process-filter
+		 'cscope-process-sentinel)
+    ))
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
