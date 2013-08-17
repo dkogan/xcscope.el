@@ -2041,7 +2041,7 @@ SENTINEL-FUNC are optional process filter and sentinel, respectively."
 	  ;; Set the cscope-marker-window to whichever window this search
 	  ;; was launched from.
 	  (setq cscope-marker-window (get-buffer-window old-buffer))
-	(setq cscope-marker (point-marker))))
+	  (setq cscope-marker (point-marker))))
     (save-excursion
       (set-buffer outbuf)
       (if cscope-display-times
