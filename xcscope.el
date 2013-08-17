@@ -1451,7 +1451,11 @@ Point is not saved on mark ring."
 
 
 (defun cscope-buffer-search (do-symbol do-next)
-  "The body of the following four functions."
+  "The body of the following four functions:
+     'cscope-next-symbol'
+     'cscope-next-file'
+     'cscope-prev-symbol'
+     'cscope-prev-file'"
   (let* (line-number old-point point
 		     (search-file (not do-symbol))
 		     (search-prev (not do-next))
