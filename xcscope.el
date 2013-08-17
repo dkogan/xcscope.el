@@ -1607,7 +1607,7 @@ overrides the current directory, which would otherwise be used."
 	(set-marker overlay-arrow-position nil))
     (setq overlay-arrow-position nil
 	  overlay-arrow-string nil)
-    (bury-buffer (get-buffer cscope-output-buffer-name))
+    (bury-buffer)
     ))
 
 
