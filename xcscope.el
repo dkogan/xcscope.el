@@ -1,25 +1,18 @@
 ; -*-Emacs-Lisp-*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
-; File:         xcscope.el
-; RCS:          $RCSfile: xcscope.el,v $ $Revision: 1.14 $ $Date: 2002/04/10 16:59:00 $ $Author: darrylo $
-; Description:  cscope interface for (X)Emacs
-; Author:       Darryl Okahata
-; Created:      Wed Apr 19 17:03:38 2000
-; Modified:     Thu Apr  4 17:22:22 2002 (Darryl Okahata) darrylo@soco.agilent.com
-; Language:     Emacs-Lisp
-; Package:      N/A
-; Status:       Experimental
+; Description:                        cscope interface for (X)Emacs
+; Original author:                    Darryl Okahata,
+; Author of new features, Maintainer: Dima Kogan
 ;
 ; (C) Copyright 2000, 2001, 2002, Darryl Okahata <darrylo@sonic.net>,
 ;     all rights reserved.
+; (C) Copyright 2013 Dima Kogan <dima@secretsauce.net>
 ; GNU Emacs enhancements (C) Copyright 2001,
 ;         Triet H. Lai <thlai@mail.usyd.edu.au>
 ; Fuzzy matching and navigation code (C) Copyright 2001,
 ;         Steven Elliott <selliott4@austin.rr.com>
 ;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; ALPHA VERSION 0.96
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -53,9 +46,7 @@
 ;;         Where is this source file in the directory structure?
 ;;         What files include this header file?
 ;;
-;; Send comments to one of:     darrylo@soco.agilent.com
-;;                              darryl_okahata@agilent.com
-;;                              darrylo@sonic.net
+;; Send comments to dima@secretsauce.net
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
