@@ -2078,66 +2078,66 @@ SENTINEL-FUNC are optional process filter and sentinel, respectively."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defvar cscope-unix-index-process-buffer-name "*cscope-indexing-buffer*"
-  "The name of the buffer to use for displaying indexing status/progress.")
-
-
-(defvar cscope-unix-index-process-buffer nil
-  "The buffer to use for displaying indexing status/progress.")
-
-
 (defvar cscope-unix-index-process nil
   "The current indexing process.")
 
+(defvar cscope-indexing-status-string nil
+  "The string returned by the indexer. This receives the indexer
+  output as it comes over time")
+
+(defun cscope-unix-index-files-filter (process output)
+  "Called when the indexing process says 'output'. I pop up a
+  message in a buffer or the echo area"
+
+  ;; add the new string
+  (setq cscope-indexing-status-string
+        (concat cscope-indexing-status-string output))
+
+  ;; and display
+  (display-message-or-buffer cscope-indexing-status-string "*cscope-indexing-buffer*"))
 
 (defun cscope-unix-index-files-sentinel (process event)
   "Simple sentinel to print a message saying that indexing is finished."
-  (let (buffer)
-    (save-window-excursion
-      (save-excursion
-	(setq buffer (process-buffer process))
-	(set-buffer buffer)
-	(goto-char (point-max))
-	(insert cscope-separator-line "\nIndexing finished\n")
-	(delete-process process)
-	(setq cscope-unix-index-process nil)
-	(set-buffer-modified-p nil)
-	))
-    ))
+  (setq cscope-indexing-status-string
+        (concat cscope-indexing-status-string
+                cscope-separator-line
+                "\n"
+                (if (equal event "finished\n")
+                    "Indexing finished\n"
+                  (concat "Indexing process received signal: " event "Stopping indexing"))))
+
+  (display-message-or-buffer cscope-indexing-status-string "*cscope-indexing-buffer*")
+  (delete-process process)
+  (setq cscope-unix-index-process nil)
+  (setq cscope-indexing-status-string nil))
 
 
 (defun cscope-unix-index-files-internal (top-directory header-text args)
   "Core function to call the indexing script."
-  (let ()
-    (save-excursion
-      (setq top-directory (cscope-canonicalize-directory top-directory))
-      (setq cscope-unix-index-process-buffer
-	    (get-buffer-create cscope-unix-index-process-buffer-name))
-      (display-buffer cscope-unix-index-process-buffer)
-      (set-buffer cscope-unix-index-process-buffer)
-      (setq buffer-read-only nil)
-      (setq default-directory top-directory)
-      (buffer-disable-undo)
-      (erase-buffer)
-      (if header-text
-	  (insert header-text))
-      (setq args (append args
-			 (list "-v"
-			       "-i" cscope-index-file
-			       "-f" cscope-database-file
-			       (if cscope-use-relative-paths
-				   "." top-directory))))
-      (if cscope-index-recursively
-	  (setq args (cons "-r" args)))
-      (setq cscope-unix-index-process
-	    (apply 'start-file-process "cscope-indexer"
-		   cscope-unix-index-process-buffer
-		   cscope-indexing-script args))
-      (set-process-sentinel cscope-unix-index-process
-			    'cscope-unix-index-files-sentinel)
-      (process-kill-without-query cscope-unix-index-process)
-      )
-    ))
+  (save-excursion
+    (setq top-directory (cscope-canonicalize-directory top-directory))
+    (setq cscope-indexing-status-string
+          (or header-text ""))
+
+    (setq args (append args
+                       (list "-v"
+                             "-i" cscope-index-file
+                             "-f" cscope-database-file
+                             (if cscope-use-relative-paths
+                                 "." top-directory))))
+    (if cscope-index-recursively
+        (setq args (cons "-r" args)))
+    (setq cscope-unix-index-process
+          (let ((default-directory top-directory))
+            (apply 'start-file-process "cscope-indexer"
+                   nil
+                   cscope-indexing-script args)))
+    (set-process-filter cscope-unix-index-process 'cscope-unix-index-files-filter)
+    (set-process-sentinel cscope-unix-index-process
+                          'cscope-unix-index-files-sentinel)
+    (process-kill-without-query cscope-unix-index-process)
+    )
+  )
 
 
 (defun cscope-index-files (top-directory)
