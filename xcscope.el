@@ -830,6 +830,12 @@ be removed by quitting the cscope buffer."
   :group 'cscope)
 
 
+(defcustom cscope-close-window-after-select nil
+  "*If non-nil close the window showing the cscope buffer after an entry has been selected."
+  :type 'boolean
+  :group 'cscope)
+
+
 (defvar cscope-minor-mode-hooks nil
   "List of hooks to call when entering cscope-minor-mode.")
 
@@ -915,6 +921,8 @@ Must end with a newline.")
       (define-key cscope-list-entry-keymap [button2] 'cscope-mouse-select-entry-other-window)
     (define-key cscope-list-entry-keymap [mouse-2] 'cscope-mouse-select-entry-other-window))
   (define-key cscope-list-entry-keymap [return] 'cscope-select-entry-other-window)
+  ;; \r is for Emacs:
+  (define-key cscope-list-entry-keymap "\r" 'cscope-select-entry-other-window)
   (define-key cscope-list-entry-keymap " " 'cscope-show-entry-other-window)
   (define-key cscope-list-entry-keymap "o" 'cscope-select-entry-one-window)
   (define-key cscope-list-entry-keymap "q" 'cscope-bury-buffer)
@@ -1387,7 +1395,9 @@ Push current point on mark ring and select the entry window."
     (setq window (cscope-show-entry-internal file line-number t))
     (if (windowp window)
 	(select-window window))
-    ))
+    )
+  (if cscope-close-window-after-select
+    (delete-windows-on cscope-output-buffer-name)))
 
 
 (defun cscope-select-entry-one-window ()
