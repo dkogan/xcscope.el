@@ -1993,7 +1993,7 @@ using the mouse."
 		    cscope-last-file nil
 		    )
 	      (setq cscope-process
-		    (apply 'start-process "cscope" outbuf
+		    (apply 'start-file-process "cscope" outbuf
 			   cscope-program options))
 	      (set-process-filter cscope-process cscope-filter-func)
 	      (set-process-sentinel cscope-process cscope-sentinel-func)
@@ -2126,7 +2126,7 @@ SENTINEL-FUNC are optional process filter and sentinel, respectively."
       (if cscope-index-recursively
 	  (setq args (cons "-r" args)))
       (setq cscope-unix-index-process
-	    (apply 'start-process "cscope-indexer"
+	    (apply 'start-file-process "cscope-indexer"
 		   cscope-unix-index-process-buffer
 		   cscope-indexing-script args))
       (set-process-sentinel cscope-unix-index-process
