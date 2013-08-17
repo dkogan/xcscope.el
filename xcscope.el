@@ -199,6 +199,7 @@
 ;; editing a source file, or in the cscope results buffer:
 ;;
 ;;      C-c s s         Find symbol.
+;;      C-c s =         Find assignments to this symbol
 ;;      C-c s d         Find global definition.
 ;;      C-c s g         Find global definition (alternate binding).
 ;;      C-c s G         Find global definition without prompting.
