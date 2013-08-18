@@ -1204,6 +1204,10 @@ directory should begin.")
 		      )
 		    "-----------"
 		    ( "Options"
+                      [ "Auto close *cscope* buffer"
+                        (setq cscope-close-window-after-select
+                              (not cscope-close-window-after-select))
+                        :style toggle :selected cscope-close-window-after-select ]
 		      [ "Auto edit single match"
 			(setq cscope-edit-single-match
 			      (not cscope-edit-single-match))
