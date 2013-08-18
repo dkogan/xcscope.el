@@ -1075,9 +1075,12 @@ searching.")
 
 
 (defvar cscope-adjust t
-  "True if the symbol searched for (cscope-symbol) should be on
-the line specified by the cscope database.  In such cases the point will be
-adjusted if need be (fuzzy matching).")
+  "True if the location of symbols reported by the cscope
+database should be adjusted by searching for the text that should
+appear there. If the sources are exactly the same as when the
+cscope database was made, then the locations reported by cscope
+will be right. Otherwise they could be wrong. 'cscope-adjust'
+turns this fuzzy matching on/off.")
 
 
 (defvar cscope-adjust-range 1000
@@ -1310,6 +1313,15 @@ Returns the window displaying BUFFER."
 		(setq old-pos (point))
 		(goto-line line-number)
 		(setq old-point (point))
+
+                ;; Look around the location that cscope reported to find the
+                ;; text that should appear there. If the sources are exactly the
+                ;; same as when the cscope database was made, then the locations
+                ;; reported by cscope will be right. Otherwise they could be
+                ;; wrong, and this code is meant to compensate for some position
+                ;; variability. 'cscope-adjust' turns this "fuzzy matching"
+                ;; on/off and 'cscope-adjust-range' specifies how far we should
+                ;; look
 		(if (and cscope-adjust cscope-adjust-range)
 		    (progn
 		      ;; Calculate the length of the line specified by cscope.
