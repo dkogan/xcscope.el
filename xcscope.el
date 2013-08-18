@@ -1255,7 +1255,9 @@ directory should begin.")
 The text properties to be added:
 - common property: mouse-face,
 - properties are used to open target file and its location: cscope-file,
-  cscope-line-number"
+  cscope-line-number
+- cscope-symbol used to keep track of the symbol that was searched for. This
+  can now vary since unrelated searches can live in the same buffer"
   (let ((plist cscope-common-text-plist)
 	beg end)
     (setq beg (point))
@@ -1268,6 +1270,7 @@ The text properties to be added:
 	      (setq line-number (string-to-number line-number)))
 	  (setq plist (plist-put plist 'cscope-line-number line-number))
 	  ))
+    (setq plist (plist-put plist 'cscope-symbol cscope-symbol))
     (add-text-properties beg end plist)
     ))
 
@@ -1293,7 +1296,7 @@ The text properties to be added:
   )
 
 
-(defun cscope-show-entry-internal (file line-number 
+(defun cscope-show-entry-internal (file line-number symbol
 					&optional save-mark-p window arrow-p)
   "Display the buffer corresponding to FILE and LINE-NUMBER
 in some window.  If optional argument WINDOW is given,
@@ -1338,12 +1341,12 @@ Returns the window displaying BUFFER."
 
 		      ;; Search forward and backward for the pattern.
 		      (setq forward-point (search-forward
-					   cscope-symbol
+					   symbol
 					   (+ old-point
 					      cscope-adjust-range) t))
 		      (goto-char old-point)
 		      (setq backward-point (search-backward
-					    cscope-symbol
+					    symbol
 					    (- old-point
 					       cscope-adjust-range) t))
 		      (if forward-point
@@ -1440,8 +1443,9 @@ Push current point on mark ring and select the entry window."
   (interactive)
   (let ((file (get-text-property (point) 'cscope-file))
 	(line-number (get-text-property (point) 'cscope-line-number))
+        (symbol (get-text-property (point) 'cscope-symbol))
 	window)
-    (setq window (cscope-show-entry-internal file line-number t))
+    (setq window (cscope-show-entry-internal file line-number symbol t))
     (if (windowp window)
 	(select-window window))
     )
@@ -1454,8 +1458,9 @@ Push current point on mark ring and select the entry window."
   (interactive)
   (let ((file (get-text-property (point) 'cscope-file))
 	(line-number (get-text-property (point) 'cscope-line-number))
+        (symbol (get-text-property (point) 'cscope-symbol))
 	window)
-    (setq window (cscope-show-entry-internal file line-number t))
+    (setq window (cscope-show-entry-internal file line-number symbol t))
     (if (windowp window)
 	(progn
 	  (select-window window)
@@ -1470,8 +1475,9 @@ Push current point on mark ring and select the entry window."
   "Display the entry at point in a specified window, select the window."
   (interactive)
   (let ((file (get-text-property (point) 'cscope-file))
-	(line-number (get-text-property (point) 'cscope-line-number)))
-    (setq window (cscope-show-entry-internal file line-number t window))
+	(line-number (get-text-property (point) 'cscope-line-number))
+        (symbol (get-text-property (point) 'cscope-symbol)))
+    (setq window (cscope-show-entry-internal file line-number symbol t window))
     (if (windowp window)
 	  (select-window window))
     ))
@@ -1482,14 +1488,15 @@ Push current point on mark ring and select the entry window."
   (interactive "e")
   (let ((ep (cscope-event-point event))
 	(win (cscope-event-window event))
-	buffer file line-number window)
+	buffer file line-number symbol window)
     (if ep
         (progn
           (setq buffer (window-buffer win)
                 file (get-text-property ep 'cscope-file buffer)
-                line-number (get-text-property ep 'cscope-line-number buffer))
+                line-number (get-text-property ep 'cscope-line-number buffer)
+                symbol (get-text-property ep 'cscope-symbol buffer))
           (select-window win)
-          (setq window (cscope-show-entry-internal file line-number t))
+          (setq window (cscope-show-entry-internal file line-number symbol t))
           (if (windowp window)
               (select-window window))
           )
@@ -1503,8 +1510,9 @@ Push current point on mark ring and select the entry window."
 Point is not saved on mark ring."
   (interactive)
   (let ((file (get-text-property (point) 'cscope-file))
-	(line-number (get-text-property (point) 'cscope-line-number)))
-    (cscope-show-entry-internal file line-number nil nil t)
+	(line-number (get-text-property (point) 'cscope-line-number))
+        (symbol (get-text-property (point) 'cscope-symbol)))
+    (cscope-show-entry-internal file line-number symbol nil nil t)
     ))
 
 
@@ -1868,8 +1876,9 @@ using the mouse."
 			(if cscope-first-match
 			    (setq cscope-matched-multiple t)
 			  (setq cscope-first-match
-				(cons (expand-file-name file)
-				      (string-to-number line-number))))
+				(list (expand-file-name file)
+				      (string-to-number line-number)
+                                      cscope-symbol)))
 			))
 		  (insert line "\n")
 		  ))
@@ -1956,8 +1965,7 @@ using the mouse."
      ( cscope-first-match
        (if cscope-display-cscope-buffer
            (if (and cscope-edit-single-match (not cscope-matched-multiple))
-               (cscope-show-entry-internal(car cscope-first-match)
-                                           (cdr cscope-first-match) t))
+               (apply 'cscope-show-entry-internal (append cscope-first-match '(t))))
          (cscope-select-entry-specified-window old-buffer-window))
        )
      )
