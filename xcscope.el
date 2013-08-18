@@ -947,6 +947,11 @@ Must end with a newline.")
   (define-key cscope-list-entry-keymap "P" 'cscope-prev-file)
   (define-key cscope-list-entry-keymap "u" 'cscope-pop-mark)
   ;; ---
+  (define-key cscope-list-entry-keymap (kbd "M-p") 'cscope-history-backward)
+  (define-key cscope-list-entry-keymap "v"         'cscope-history-backward)
+  (define-key cscope-list-entry-keymap (kbd "M-n") 'cscope-history-forward)
+  (define-key cscope-list-entry-keymap "V"         'cscope-history-forward)
+  ;; ---
   (define-key cscope-list-entry-keymap "a" 'cscope-set-initial-directory)
   (define-key cscope-list-entry-keymap "A" 'cscope-unset-initial-directory)
   ;; ---
@@ -1144,6 +1149,8 @@ directory should begin.")
   (define-key cscope:map "\C-csp" 'cscope-prev-symbol)
   (define-key cscope:map "\C-csP" 'cscope-prev-file)
   (define-key cscope:map "\C-csu" 'cscope-pop-mark)
+  (define-key cscope:map "\C-csv" 'cscope-history-backward)
+  (define-key cscope:map "\C-csV" 'cscope-history-forward)
   ;; ---
   (define-key cscope:map "\C-csa" 'cscope-set-initial-directory)
   (define-key cscope:map "\C-csA" 'cscope-unset-initial-directory)
@@ -1184,6 +1191,8 @@ directory should begin.")
 		    [ "Previous symbol" 	cscope-prev-symbol t ]
 		    [ "Previous file"   	cscope-prev-file t ]
 		    [ "Pop mark"        	cscope-pop-mark t ]
+		    [ "View history backward"   cscope-history-backward t ]
+		    [ "View history forward"    cscope-history-forward t ]
 		    "-----------"
 		    ( "Cscope Database"
 		      [ "Set initial directory"
@@ -1602,6 +1611,46 @@ Point is not saved on mark ring."
   (interactive)
   (cscope-buffer-search nil nil))
 
+(defun cscope-history-forward-backward (forward)
+  "Body for 'cscope-history-forward' and 'cscope-history-backward'"
+
+  (let* (original-point-in-cscope
+         point-separator
+         (old-buffer (current-buffer))
+         (old-buffer-window (get-buffer-window old-buffer))
+         (buffer (get-buffer cscope-output-buffer-name))
+         (buffer-window (get-buffer-window (or buffer (error "The *cscope* buffer does not exist yet"))))
+         )
+    (set-buffer buffer)
+    (setq original-point-in-cscope (point))
+
+    (goto-char
+     (cond
+      (forward 
+       (or (cscope-find-next-history-separator-end (point))
+           (progn (goto-char original-point-in-cscope)
+                  (error "The %s of the *cscope* buffer has been reached" "end"))))
+      (t
+       (or (cscope-find-prev-history-separator-end
+            (cscope-find-prev-history-separator-start (point)))
+           (progn (goto-char original-point-in-cscope)
+                  (error "The %s of the *cscope* buffer has been reached" "start"))))))
+
+    (when (not (eq old-buffer buffer)) ;; Not in the *cscope* buffer.
+      (cscope-display-buffer))))
+
+
+(defun cscope-history-forward ()
+  "Navigate to the next stored search results in the *cscope*
+buffer."
+  (interactive)
+  (cscope-history-forward-backward t))
+
+(defun cscope-history-backward ()
+  "Navigate to the previous stored search results in the *cscope*
+buffer."
+  (interactive)
+  (cscope-history-forward-backward nil))
 
 (defun cscope-pop-mark ()
   "Pop back to where cscope was last invoked."
