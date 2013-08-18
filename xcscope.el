@@ -706,6 +706,12 @@ for this to work."
   :type 'boolean
   :group 'cscope)
 
+(defcustom cscope-max-cscope-buffer-size 100000
+  "*If >0, limit the size of the *cscope* buffer. Only the
+'cscope-max-cscope-buffer-size' bytes at the end are kept,
+rounded up to keep whole sets of cscope output"
+  :type 'integer
+  :group 'cscope)
 
 (defcustom cscope-program "cscope"
   "*The pathname of the cscope executable to use."
@@ -1385,6 +1391,45 @@ Returns the window displaying BUFFER."
     )
   window)
 
+(defun cscope-next-separator-boundary (at)
+  "Shorthand used for the separator navigation routines"
+  (next-single-property-change at 'cscope-history-separator))
+
+(defun cscope-prev-separator-boundary (at)
+  "Shorthand used for the separator navigation routines"
+  (previous-single-property-change at 'cscope-history-separator))
+
+(defun cscope-at-separator-p (at)
+  "Shorthand used for the separator navigation routines"
+  (get-text-property at 'cscope-history-separator))
+
+(defun cscope-find-next-history-separator-end (at)
+  "Finds the next end of the history separator after 'at'"
+
+  (when (and at
+             (setq at (cscope-next-separator-boundary at)))
+    (if (cscope-at-separator-p at)
+        (cscope-next-separator-boundary at)
+      at)))
+
+(defun cscope-find-prev-history-separator-end (at)
+  "Finds the previous end of the history separator before 'at'"
+
+  (when (and at
+             (setq at (cscope-prev-separator-boundary at)))
+    (if (cscope-at-separator-p at)
+        (cscope-prev-separator-boundary at)
+      at)))
+
+(defun cscope-find-prev-history-separator-start (at)
+  "Finds the previous start of the history separator before 'at'"
+
+  (when (and at
+             (setq at (cscope-prev-separator-boundary at)))
+    (if (not (cscope-at-separator-p at))
+        (cscope-prev-separator-boundary at)
+      at)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions in *cscope* buffer which lists the search results
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1916,6 +1961,20 @@ using the mouse."
          (cscope-select-entry-specified-window old-buffer-window))
        )
      )
+
+    ;; if the *cscope* buffer is too long, truncate it
+    (when (and done
+               (> cscope-max-cscope-buffer-size 0)
+               (> (buffer-size) cscope-max-cscope-buffer-size))
+
+      (setq buffer-read-only nil)
+
+      (let ((cut-at-point (cscope-find-prev-history-separator-start (point-max))))
+        (when cut-at-point
+          (delete-region (point-min) cut-at-point)))
+
+      (setq buffer-read-only t)
+      )
     (if (and done (eq old-buffer buffer) cscope-first-match)
 	(cscope-help))
     (set-buffer old-buffer)
@@ -2073,8 +2132,12 @@ SENTINEL-FUNC are optional process filter and sentinel, respectively."
 	    cscope-matched-multiple nil
 	    buffer-read-only nil)
       (buffer-disable-undo)
-      (erase-buffer)
       (setq truncate-lines cscope-truncate-lines)
+
+      ;; insert the separator at the start of the result set
+      (goto-char (point-max))
+      (insert (propertize (concat "\n" cscope-separator-line cscope-separator-line)
+                          'cscope-history-separator 't))
       (if msg
 	  (insert msg "\n"))
       (cscope-search-one-database)
