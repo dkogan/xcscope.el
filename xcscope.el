@@ -975,8 +975,7 @@ Must end with a newline.")
 
 \\{cscope-list-entry-keymap}"
   (use-local-map cscope-list-entry-keymap)
-  (setq buffer-read-only t
-	mode-name "cscope"
+  (setq mode-name "cscope"
 	major-mode 'cscope-list-entry-mode
 	overlay-arrow-string cscope-overlay-arrow-string)
   (or overlay-arrow-position
@@ -1853,8 +1852,7 @@ using the mouse."
     (unwind-protect
 	(progn
 	  (set-buffer (process-buffer process))
-	  ;; Make buffer-read-only nil
-	  (let (buffer-read-only line file function-name line-number moving)
+	  (let (line file function-name line-number moving)
 	    (setq moving (= (point) (process-mark process)))
 	    (save-excursion
 	      (goto-char (process-mark process))
@@ -1964,7 +1962,7 @@ using the mouse."
 	      (setq update-window t)
 	      ))
 	(delete-process process)
-	(let (buffer-read-only continue)
+	(let (continue)
 	  (goto-char (point-max))
 	  (if (and cscope-suppress-empty-matches
 		   (= cscope-output-start (point)))
@@ -2032,13 +2030,9 @@ using the mouse."
                (> cscope-max-cscope-buffer-size 0)
                (> (buffer-size) cscope-max-cscope-buffer-size))
 
-      (setq buffer-read-only nil)
-
       (let ((cut-at-point (cscope-find-prev-history-separator-start (point-max))))
         (when cut-at-point
           (delete-region (point-min) cut-at-point)))
-
-      (setq buffer-read-only t)
       )
     (if (and done (eq old-buffer buffer) cscope-first-match)
 	(cscope-help))
@@ -2142,7 +2136,6 @@ using the mouse."
 	      (process-kill-without-query cscope-process)
 	      (if cscope-running-in-xemacs
 		  (setq modeline-process ": Searching ..."))
-	      (setq buffer-read-only t)
 	      )
 	  (apply 'call-process cscope-program nil outbuf t options)
 	  )
@@ -2194,9 +2187,7 @@ SENTINEL-FUNC are optional process filter and sentinel, respectively."
 	    cscope-first-match nil
 	    cscope-first-match-point nil
 	    cscope-stop-at-first-match-dir-meta (memq t cscope-search-list)
-	    cscope-matched-multiple nil
-	    buffer-read-only nil)
-      (buffer-disable-undo)
+	    cscope-matched-multiple nil)
       (setq truncate-lines cscope-truncate-lines)
 
       ;; insert the separator at the start of the result set
