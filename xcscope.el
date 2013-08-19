@@ -947,10 +947,12 @@ Must end with a newline.")
   (define-key cscope-list-entry-keymap "P" 'cscope-prev-file)
   (define-key cscope-list-entry-keymap "u" 'cscope-pop-mark)
   ;; ---
-  (define-key cscope-list-entry-keymap (kbd "M-p") 'cscope-history-backward)
-  (define-key cscope-list-entry-keymap "v"         'cscope-history-backward)
-  (define-key cscope-list-entry-keymap (kbd "M-n") 'cscope-history-forward)
-  (define-key cscope-list-entry-keymap "V"         'cscope-history-forward)
+  (define-key cscope-list-entry-keymap (kbd "M-P") 'cscope-history-backward-result)
+  (define-key cscope-list-entry-keymap (kbd "M-p") 'cscope-history-backward-file)
+  (define-key cscope-list-entry-keymap (kbd "M-N") 'cscope-history-forward-result)
+  (define-key cscope-list-entry-keymap (kbd "M-n") 'cscope-history-forward-file)
+  (define-key cscope-list-entry-keymap (kbd "M-K") 'cscope-history-kill-result)
+  (define-key cscope-list-entry-keymap (kbd "M-k") 'cscope-history-kill-file)
   ;; ---
   (define-key cscope-list-entry-keymap "a" 'cscope-set-initial-directory)
   (define-key cscope-list-entry-keymap "A" 'cscope-unset-initial-directory)
@@ -1148,8 +1150,6 @@ directory should begin.")
   (define-key cscope:map "\C-csp" 'cscope-prev-symbol)
   (define-key cscope:map "\C-csP" 'cscope-prev-file)
   (define-key cscope:map "\C-csu" 'cscope-pop-mark)
-  (define-key cscope:map "\C-csv" 'cscope-history-backward)
-  (define-key cscope:map "\C-csV" 'cscope-history-forward)
   ;; ---
   (define-key cscope:map "\C-csa" 'cscope-set-initial-directory)
   (define-key cscope:map "\C-csA" 'cscope-unset-initial-directory)
@@ -1163,93 +1163,110 @@ directory should begin.")
   (define-key cscope:map "\C-csD" 'cscope-dired-directory))
   ;; The previous line corresponds to be end of the "Cscope" menu.
 
-(easy-menu-define cscope:menu
-		  (list cscope:map cscope-list-entry-keymap)
-		  "cscope menu"
-		  '("Cscope"
-		    [ "Find symbol" cscope-find-this-symbol t ]
-		    [ "Find global definition" cscope-find-global-definition t ]
-		    [ "Find global definition no prompting"
-		      cscope-find-global-definition-no-prompting t ]
-		    [ "Find assignments to symbol"
-                      cscope-find-assignments-to-this-symbol t ]
-		    [ "Find functions calling a function"
-		      cscope-find-functions-calling-this-function t ]
-		    [ "Find called functions" cscope-find-called-functions t ]
-		    [ "Find text string" cscope-find-this-text-string t ]
-		    [ "Find egrep pattern" cscope-find-egrep-pattern t ]
-		    [ "Find a file" cscope-find-this-file t ]
-		    [ "Find files #including a file"
-		      cscope-find-files-including-file t ]
-		    "-----------"
-		    [ "Display *cscope* buffer" cscope-display-buffer t ]
-		    [ "Auto display *cscope* buffer toggle"
-		      cscope-display-buffer-toggle t ]
-		    [ "Next symbol"     	cscope-next-symbol t ]
-		    [ "Next file"       	cscope-next-file t ]
-		    [ "Previous symbol" 	cscope-prev-symbol t ]
-		    [ "Previous file"   	cscope-prev-file t ]
-		    [ "Pop mark"        	cscope-pop-mark t ]
-		    [ "View history backward"   cscope-history-backward t ]
-		    [ "View history forward"    cscope-history-forward t ]
-		    "-----------"
-		    ( "Cscope Database"
-		      [ "Set initial directory"
-			cscope-set-initial-directory t ]
-		      [ "Unset initial directory"
-			cscope-unset-initial-directory t ]
-		      "-----------"
-		      [ "Create list of files to index"
-			cscope-create-list-of-files-to-index t ]
-		      [ "Create list and index"
-			cscope-index-files t ]
-		      [ "Edit list of files to index"
-			cscope-edit-list-of-files-to-index t ]
-		      [ "Locate this buffer's cscope directory"
-			cscope-tell-user-about-directory t ]
-		      [ "Dired this buffer's cscope directory"
-			cscope-dired-directory t ]
-		      )
-		    "-----------"
-		    ( "Options"
-                      [ "Auto close *cscope* buffer"
-                        (setq cscope-close-window-after-select
-                              (not cscope-close-window-after-select))
-                        :style toggle :selected cscope-close-window-after-select ]
-		      [ "Auto edit single match"
-			(setq cscope-edit-single-match
-			      (not cscope-edit-single-match))
-			:style toggle :selected cscope-edit-single-match ]
-		      [ "Auto display *cscope* buffer"
-			(setq cscope-display-cscope-buffer
-			      (not cscope-display-cscope-buffer))
-			:style toggle :selected cscope-display-cscope-buffer ]
-		      [ "Stop at first matching database"
-			(setq cscope-stop-at-first-match-dir
-			      (not cscope-stop-at-first-match-dir))
-			:style toggle
-			:selected cscope-stop-at-first-match-dir ]
-		      [ "Never update cscope database"
-			(setq cscope-do-not-update-database
-			      (not cscope-do-not-update-database))
-			:style toggle :selected cscope-do-not-update-database ]
-		      [ "Index recursively"
-			(setq cscope-index-recursively
-			      (not cscope-index-recursively))
-			:style toggle :selected cscope-index-recursively ]
-		      [ "Suppress empty matches"
-			(setq cscope-suppress-empty-matches
-			      (not cscope-suppress-empty-matches))
-			:style toggle :selected cscope-suppress-empty-matches ]
-		      [ "Use relative paths"
-			(setq cscope-use-relative-paths
-			      (not cscope-use-relative-paths))
-			:style toggle :selected cscope-use-relative-paths ]
-		      [ "No mouse prompts" (setq cscope-no-mouse-prompts
-						 (not cscope-no-mouse-prompts))
-			:style toggle :selected cscope-no-mouse-prompts ] 
-		      )
-		    ))
+(let ((menu-before
+       '([ "Find symbol" cscope-find-this-symbol t ]
+         [ "Find global definition" cscope-find-global-definition t ]
+         [ "Find global definition no prompting"
+           cscope-find-global-definition-no-prompting t ]
+         [ "Find assignments to symbol"
+           cscope-find-assignments-to-this-symbol t ]
+         [ "Find functions calling a function"
+           cscope-find-functions-calling-this-function t ]
+         [ "Find called functions" cscope-find-called-functions t ]
+         [ "Find text string" cscope-find-this-text-string t ]
+         [ "Find egrep pattern" cscope-find-egrep-pattern t ]
+         [ "Find a file" cscope-find-this-file t ]
+         [ "Find files #including a file"
+           cscope-find-files-including-file t ]
+         "-----------"
+         [ "Display *cscope* buffer" cscope-display-buffer t ]
+         [ "Auto display *cscope* buffer toggle"
+           cscope-display-buffer-toggle t ]
+         [ "Next symbol"     	cscope-next-symbol t ]
+         [ "Next file"       	cscope-next-file t ]
+         [ "Previous symbol" 	cscope-prev-symbol t ]
+         [ "Previous file"   	cscope-prev-file t ]
+         [ "Pop mark"        	cscope-pop-mark t ]
+         "-----------"
+         ))
+
+      (menu-navigation
+       '([ "History backward result"   cscope-history-backward-result t ]
+         [ "History backward file"     cscope-history-backward-file t ]
+         [ "History forward result"    cscope-history-forward-result t ]
+         [ "History forward file"      cscope-history-forward-file t ]
+         [ "History kill result"       cscope-history-kill-result t ]
+         [ "History kill file"         cscope-history-kill-file t ]
+         "-----------"))
+
+      (menu-after
+       '(( "Cscope Database"
+           [ "Set initial directory"
+             cscope-set-initial-directory t ]
+           [ "Unset initial directory"
+             cscope-unset-initial-directory t ]
+           "-----------"
+           [ "Create list of files to index"
+             cscope-create-list-of-files-to-index t ]
+           [ "Create list and index"
+             cscope-index-files t ]
+           [ "Edit list of files to index"
+             cscope-edit-list-of-files-to-index t ]
+           [ "Locate this buffer's cscope directory"
+             cscope-tell-user-about-directory t ]
+           [ "Dired this buffer's cscope directory"
+             cscope-dired-directory t ]
+           )
+         "-----------"
+         ( "Options"
+           [ "Auto close *cscope* buffer"
+             (setq cscope-close-window-after-select
+                   (not cscope-close-window-after-select))
+             :style toggle :selected cscope-close-window-after-select ]
+           [ "Auto edit single match"
+             (setq cscope-edit-single-match
+                   (not cscope-edit-single-match))
+             :style toggle :selected cscope-edit-single-match ]
+           [ "Auto display *cscope* buffer"
+             (setq cscope-display-cscope-buffer
+                   (not cscope-display-cscope-buffer))
+             :style toggle :selected cscope-display-cscope-buffer ]
+           [ "Stop at first matching database"
+             (setq cscope-stop-at-first-match-dir
+                   (not cscope-stop-at-first-match-dir))
+             :style toggle
+             :selected cscope-stop-at-first-match-dir ]
+           [ "Never update cscope database"
+             (setq cscope-do-not-update-database
+                   (not cscope-do-not-update-database))
+             :style toggle :selected cscope-do-not-update-database ]
+           [ "Index recursively"
+             (setq cscope-index-recursively
+                   (not cscope-index-recursively))
+             :style toggle :selected cscope-index-recursively ]
+           [ "Suppress empty matches"
+             (setq cscope-suppress-empty-matches
+                   (not cscope-suppress-empty-matches))
+             :style toggle :selected cscope-suppress-empty-matches ]
+           [ "Use relative paths"
+             (setq cscope-use-relative-paths
+                   (not cscope-use-relative-paths))
+             :style toggle :selected cscope-use-relative-paths ]
+           [ "No mouse prompts" (setq cscope-no-mouse-prompts
+                                      (not cscope-no-mouse-prompts))
+             :style toggle :selected cscope-no-mouse-prompts ] 
+           )
+         )))
+
+  (easy-menu-define cscope:menu
+    cscope:map
+    "cscope menu"
+    `("Cscope" ,@menu-before ,@menu-after))
+
+  (easy-menu-define cscope:menu
+     cscope-list-entry-keymap
+    "cscope menu"
+    `("Cscope" ,@menu-before ,@menu-navigation ,@menu-after)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Internal functions and variables
@@ -1427,6 +1444,15 @@ Returns the window displaying BUFFER."
   (when (and at
              (setq at (cscope-next-separator-boundary at)))
     (if (cscope-at-separator-p at)
+        (cscope-next-separator-boundary at)
+      at)))
+
+(defun cscope-find-next-history-separator-start (at)
+  "Finds the next start of the history separator after 'at'"
+
+  (when (and at
+             (setq at (cscope-next-separator-boundary at)))
+    (if (not (cscope-at-separator-p at))
         (cscope-next-separator-boundary at)
       at)))
 
@@ -1615,45 +1641,38 @@ Point is not saved on mark ring."
   (cscope-buffer-search nil nil))
 
 (defun cscope-history-forward-backward (forward)
-  "Body for 'cscope-history-forward' and 'cscope-history-backward'"
+  "Body for 'cscope-history-forward-result' and 'cscope-history-backward-result'"
+  (goto-char
+   (cond
+    (forward (or (cscope-find-next-history-separator-end (point))
+                 (error "The end of the *cscope* buffer has been reached")))
+    (t       (or (cscope-find-prev-history-separator-end
+                  (cscope-find-prev-history-separator-start (point)))
+                 (error "The beginning of the *cscope* buffer has been reached"))))))
 
-  (let* (original-point-in-cscope
-         point-separator
-         (old-buffer (current-buffer))
-         (old-buffer-window (get-buffer-window old-buffer))
-         (buffer (get-buffer cscope-output-buffer-name))
-         (buffer-window (get-buffer-window (or buffer (error "The *cscope* buffer does not exist yet"))))
-         )
-    (set-buffer buffer)
-    (setq original-point-in-cscope (point))
-
-    (goto-char
-     (cond
-      (forward 
-       (or (cscope-find-next-history-separator-end (point))
-           (progn (goto-char original-point-in-cscope)
-                  (error "The %s of the *cscope* buffer has been reached" "end"))))
-      (t
-       (or (cscope-find-prev-history-separator-end
-            (cscope-find-prev-history-separator-start (point)))
-           (progn (goto-char original-point-in-cscope)
-                  (error "The %s of the *cscope* buffer has been reached" "start"))))))
-
-    (when (not (eq old-buffer buffer)) ;; Not in the *cscope* buffer.
-      (cscope-display-buffer))))
-
-
-(defun cscope-history-forward ()
+(defun cscope-history-forward-result ()
   "Navigate to the next stored search results in the *cscope*
 buffer."
   (interactive)
   (cscope-history-forward-backward t))
 
-(defun cscope-history-backward ()
+(defun cscope-history-backward-result ()
   "Navigate to the previous stored search results in the *cscope*
 buffer."
   (interactive)
   (cscope-history-forward-backward nil))
+
+(defun cscope-history-kill-result ()
+  "Delete a cscope result from the *cscope* buffer."
+  (interactive)
+
+  (let* ((beg (or (cscope-find-prev-history-separator-start (point))
+                  (point-min)))
+         (end (or (cscope-find-next-history-separator-start beg)
+                  (point-max))))
+
+      (delete-region beg end)))
+
 
 (defun cscope-pop-mark ()
   "Pop back to where cscope was last invoked."
