@@ -1309,8 +1309,8 @@ The text properties to be added:
   )
 
 
-(defun cscope-show-entry-internal (file line-number symbol
-					&optional save-mark-p window arrow-p)
+(defun cscope-show-entry-internal (navprops
+                                   &optional save-mark-p window arrow-p)
   "Display the buffer corresponding to FILE and LINE-NUMBER
 in some window.  If optional argument WINDOW is given,
 display the buffer in that WINDOW instead.  The window is
@@ -1318,8 +1318,11 @@ not selected.  Save point on mark ring before goto
 LINE-NUMBER if optional argument SAVE-MARK-P is non-nil.
 Put `overlay-arrow-string' if arrow-p is non-nil.
 Returns the window displaying BUFFER."
-  (let (buffer old-pos old-point new-point forward-point backward-point
-	       line-end line-length)
+  (let ( (file        (elt navprops 0))
+         (line-number (elt navprops 1))
+         (symbol      (elt navprops 2))
+         buffer old-pos old-point new-point forward-point backward-point
+         line-end line-length)
     (if (and (stringp file)
 	     (integerp line-number))
 	(progn
@@ -1446,6 +1449,18 @@ Returns the window displaying BUFFER."
         (cscope-prev-separator-boundary at)
       at)))
 
+(defun cscope-get-navigation-properties (&optional at buffer)
+  "Reads the cscope navigation properties on this line. The
+properties themselves are read from the beginning of the line,
+since the trailing newline is NOT propertized."
+  (with-current-buffer (or buffer (current-buffer))
+    (save-excursion
+      (when at (goto-char at))
+      (beginning-of-line)
+      (vector (get-text-property (point) 'cscope-file)
+              (get-text-property (point) 'cscope-line-number)
+              (get-text-property (point) 'cscope-symbol)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions in *cscope* buffer which lists the search results
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1454,11 +1469,9 @@ Returns the window displaying BUFFER."
   "Display the entry at point in other window, select the window.
 Push current point on mark ring and select the entry window."
   (interactive)
-  (let ((file (get-text-property (point) 'cscope-file))
-	(line-number (get-text-property (point) 'cscope-line-number))
-        (symbol (get-text-property (point) 'cscope-symbol))
+  (let ((navprops (cscope-get-navigation-properties))
 	window)
-    (setq window (cscope-show-entry-internal file line-number symbol t))
+    (setq window (cscope-show-entry-internal navprops t))
     (if (windowp window)
 	(select-window window))
     )
@@ -1469,11 +1482,9 @@ Push current point on mark ring and select the entry window."
 (defun cscope-select-entry-one-window ()
   "Display the entry at point in one window, select the window."
   (interactive)
-  (let ((file (get-text-property (point) 'cscope-file))
-	(line-number (get-text-property (point) 'cscope-line-number))
-        (symbol (get-text-property (point) 'cscope-symbol))
+  (let ((navprops (cscope-get-navigation-properties))
 	window)
-    (setq window (cscope-show-entry-internal file line-number symbol t))
+    (setq window (cscope-show-entry-internal navprops t))
     (if (windowp window)
 	(progn
 	  (select-window window)
@@ -1487,10 +1498,8 @@ Push current point on mark ring and select the entry window."
 (defun cscope-select-entry-specified-window (window)
   "Display the entry at point in a specified window, select the window."
   (interactive)
-  (let ((file (get-text-property (point) 'cscope-file))
-	(line-number (get-text-property (point) 'cscope-line-number))
-        (symbol (get-text-property (point) 'cscope-symbol)))
-    (setq window (cscope-show-entry-internal file line-number symbol t window))
+  (let ((navprops (cscope-get-navigation-properties)))
+    (setq window (cscope-show-entry-internal navprops t window))
     (if (windowp window)
 	  (select-window window))
     ))
@@ -1501,18 +1510,14 @@ Push current point on mark ring and select the entry window."
   (interactive "e")
   (let ((ep (cscope-event-point event))
 	(win (cscope-event-window event))
-	buffer file line-number symbol window)
+	window)
     (if ep
         (progn
-          (setq buffer (window-buffer win)
-                file (get-text-property ep 'cscope-file buffer)
-                line-number (get-text-property ep 'cscope-line-number buffer)
-                symbol (get-text-property ep 'cscope-symbol buffer))
-          (select-window win)
-          (setq window (cscope-show-entry-internal file line-number symbol t))
+          (let ((navprops (cscope-get-navigation-properties ep (window-buffer win))))
+            (select-window win)
+            (setq window (cscope-show-entry-internal navprops t)))
           (if (windowp window)
-              (select-window window))
-          )
+              (select-window window)))
       (message "No entry found at point.")
       )
     ))
@@ -1522,10 +1527,8 @@ Push current point on mark ring and select the entry window."
   "Display the entry at point in other window.
 Point is not saved on mark ring."
   (interactive)
-  (let ((file (get-text-property (point) 'cscope-file))
-	(line-number (get-text-property (point) 'cscope-line-number))
-        (symbol (get-text-property (point) 'cscope-symbol)))
-    (cscope-show-entry-internal file line-number symbol nil nil t)
+  (let ((navprops (cscope-get-navigation-properties)))
+    (cscope-show-entry-internal navprops nil nil t)
     ))
 
 
@@ -1548,7 +1551,8 @@ Point is not saved on mark ring."
     (setq old-point (point))
     (forward-line direction)
     (setq point (point))
-    (setq line-number (get-text-property point 'cscope-line-number))
+
+    (setq line-number (elt (cscope-get-navigation-properties) 1))
     (while (or (not line-number)
 	       (or (and do-symbol (= line-number -1))
 		   (and search-file  (/= line-number -1))))
@@ -1560,7 +1564,7 @@ Point is not saved on mark ring."
 	    (goto-char old-point)
 	    (error "The %s of the *cscope* buffer has been reached"
 		   (if do-next "end" "beginning"))))
-      (setq line-number (get-text-property point 'cscope-line-number)))
+          (setq line-number (elt (cscope-get-navigation-properties) 1)))
     (if (eq old-buffer buffer) ;; In the *cscope* buffer.
 	(cscope-show-entry-other-window)
       (cscope-select-entry-specified-window old-buffer-window) ;; else
