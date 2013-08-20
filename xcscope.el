@@ -1303,6 +1303,7 @@ The text properties to be added:
 	  (setq plist (plist-put plist 'cscope-line-number line-number))
 	  ))
     (setq plist (plist-put plist 'cscope-symbol cscope-symbol))
+    (setq plist (plist-put plist 'cscope-adjust cscope-adjust))
     (add-text-properties beg end plist)
     ))
 
@@ -1340,6 +1341,7 @@ Returns the window displaying BUFFER."
   (let ( (file        (elt navprops 0))
          (line-number (elt navprops 1))
          (symbol      (elt navprops 2))
+         (adjust      (elt navprops 3))
          buffer old-pos old-point new-point forward-point backward-point
          line-end line-length)
     (if (and (stringp file)
@@ -1363,10 +1365,10 @@ Returns the window displaying BUFFER."
                 ;; same as when the cscope database was made, then the locations
                 ;; reported by cscope will be right. Otherwise they could be
                 ;; wrong, and this code is meant to compensate for some position
-                ;; variability. 'cscope-adjust' turns this "fuzzy matching"
+                ;; variability. 'adjust' turns this "fuzzy matching"
                 ;; on/off and 'cscope-adjust-range' specifies how far we should
                 ;; look
-		(if (and cscope-adjust cscope-adjust-range)
+		(if (and adjust cscope-adjust-range)
 		    (progn
 		      ;; Calculate the length of the line specified by cscope.
 		      (end-of-line)
@@ -1487,7 +1489,8 @@ since the trailing newline is NOT propertized."
       (beginning-of-line)
       (vector (get-text-property (point) 'cscope-file)
               (get-text-property (point) 'cscope-line-number)
-              (get-text-property (point) 'cscope-symbol)))))
+              (get-text-property (point) 'cscope-symbol)
+              (get-text-property (point) 'cscope-adjust)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions in *cscope* buffer which lists the search results
@@ -1953,9 +1956,10 @@ using the mouse."
 			(if cscope-first-match
 			    (setq cscope-matched-multiple t)
 			  (setq cscope-first-match
-				(list (expand-file-name file)
-				      (string-to-number line-number)
-                                      cscope-symbol)))
+				(vector (expand-file-name file)
+                                        (string-to-number line-number)
+                                        cscope-symbol
+                                        cscope-adjust)))
 			))
 		  (insert line "\n")
 		  ))
@@ -2039,7 +2043,7 @@ using the mouse."
      ( cscope-first-match
        (if cscope-display-cscope-buffer
            (if (and cscope-edit-single-match (not cscope-matched-multiple))
-               (apply 'cscope-show-entry-internal (append cscope-first-match '(t))))
+               (cscope-show-entry-internal cscope-first-match t))
          (cscope-select-entry-specified-window old-buffer-window))
        )
      )
