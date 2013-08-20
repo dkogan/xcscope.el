@@ -514,6 +514,7 @@
 ;;            cscope-line-number-face
 ;;            cscope-line-face
 ;;            cscope-mouse-face
+;;            cscope-separator-face
 ;;
 ;;        The face most likely to cause problems (e.g., black-on-black
 ;;        color) is `cscope-line-face'.
@@ -834,7 +835,9 @@ be removed by quitting the cscope buffer."
 
 
 (defconst cscope-separator-line
-  "-------------------------------------------------------------------------------\n"
+  (propertize
+   "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+   'cscope-history-separator t)
   "Line of text to use as a visual separator.
 Must end with a newline.")
 
@@ -896,6 +899,15 @@ Must end with a newline.")
      (:foreground "white" :background "blue"))
     (t (:bold nil)))
   "Face used when mouse pointer is within the region of an entry."
+  :group 'cscope)
+
+(defface cscope-separator-face
+  '((((class color) (background dark))
+     (:bold t :overline t :underline t :foreground "red"))
+    (((class color) (background light))
+     (:bold t :overline t :underline t :foreground "red"))
+    (t (:bold t)))
+  "Face used to highlight the separator in the *cscope* buffer."
   :group 'cscope)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2118,11 +2130,9 @@ using the mouse."
 
 	(goto-char (point-max))
 	(if (string= base-database-file-name cscope-database-file)
-	    (insert "\nDatabase directory: " cscope-directory "\n"
-		    cscope-separator-line)
+	    (insert "\nDatabase directory: " cscope-directory "\n\n")
 	  (insert "\nDatabase directory/file: "
-		  cscope-directory base-database-file-name "\n"
-		  cscope-separator-line))
+		  cscope-directory base-database-file-name "\n\n"))
 	;; Add the correct database file to search
 	(setq options (cons base-database-file-name options))
 	(setq options (cons "-f" options))
@@ -2198,10 +2208,16 @@ SENTINEL-FUNC are optional process filter and sentinel, respectively."
 
       ;; insert the separator at the start of the result set
       (goto-char (point-max))
-      (insert (propertize (concat "\n" cscope-separator-line cscope-separator-line)
-                          'cscope-history-separator 't))
-      (if msg
-	  (insert msg "\n"))
+      (when (not (bolp))
+        (insert "\n"))
+
+      ;; don't apply the face to the trailing newline in the separator
+      (let ((separator-start (point)))
+        (insert cscope-separator-line)
+        (when cscope-use-face
+          (put-text-property separator-start (1- (point)) 'face 'cscope-separator-face)))
+
+      (insert msg)
       (cscope-search-one-database)
       )
     (if cscope-display-cscope-buffer
