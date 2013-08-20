@@ -782,11 +782,6 @@ or a file."
   :type 'boolean
   :group 'cscope)
 
-
-(defcustom cscope-suppress-empty-matches t
-  "*If non-nil, delete empty matches.")
-
-
 (defcustom cscope-indexing-script "cscope-indexer"
   "*The shell script used to create cscope indices."
   :type 'string
@@ -1244,10 +1239,6 @@ directory should begin.")
              (setq cscope-index-recursively
                    (not cscope-index-recursively))
              :style toggle :selected cscope-index-recursively ]
-           [ "Suppress empty matches"
-             (setq cscope-suppress-empty-matches
-                   (not cscope-suppress-empty-matches))
-             :style toggle :selected cscope-suppress-empty-matches ]
            [ "Use relative paths"
              (setq cscope-use-relative-paths
                    (not cscope-use-relative-paths))
@@ -1983,14 +1974,13 @@ using the mouse."
 	(delete-process process)
 	(let (continue)
 	  (goto-char (point-max))
-	  (if (and cscope-suppress-empty-matches
-		   (= cscope-output-start (point)))
-	      (delete-region cscope-item-start (point-max))
-	    (progn
-	      (if (not cscope-start-directory)
-		  (setq cscope-start-directory default-directory))
-	      (insert cscope-separator-line)
-	      ))
+
+	  (when (= cscope-output-start (point))
+            (insert " --- No matches were found ---\n"))
+          
+          (when (not cscope-start-directory)
+            (setq cscope-start-directory default-directory))
+
 	  (setq continue
 		(and cscope-search-list
 		     (not (and cscope-first-match
@@ -2018,8 +2008,6 @@ using the mouse."
 		  (setq modeline-process ": Search complete"))
 	      (if cscope-start-directory
 		  (setq default-directory cscope-start-directory))
-	      (if (not cscope-first-match)
-		  (message "No matches were found."))
 	      )
 	    ))
 	(set-buffer-modified-p nil)
@@ -2129,7 +2117,6 @@ using the mouse."
 	    (setq options (cons "-d" options)))
 
 	(goto-char (point-max))
-	(setq cscope-item-start (point))
 	(if (string= base-database-file-name cscope-database-file)
 	    (insert "\nDatabase directory: " cscope-directory "\n"
 		    cscope-separator-line)
