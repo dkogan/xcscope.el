@@ -1278,7 +1278,7 @@ The text properties to be added:
   cscope-line-number
 - cscope-symbol used to keep track of the symbol that was searched for. This
   can now vary since unrelated searches can live in the same buffer"
-  (let ((plist cscope-common-text-plist)
+  (let ((plist (and cscope-use-face cscope-common-text-plist))
 	beg end)
     (setq beg (point))
     (insert text)
