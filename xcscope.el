@@ -2049,14 +2049,16 @@ using the mouse."
      )
 
     ;; if the *cscope* buffer is too long, truncate it
-    (when (and done
-               (> cscope-max-cscope-buffer-size 0)
-               (> (buffer-size) cscope-max-cscope-buffer-size))
+    (with-current-buffer (process-buffer process)
+      (when (and done
+                 (> cscope-max-cscope-buffer-size 0)
+                 (> (- (point-max) (point-min)) cscope-max-cscope-buffer-size))
 
-      (let ((cut-at-point (cscope-find-prev-history-separator-start (point-max))))
-        (when cut-at-point
-          (delete-region (point-min) cut-at-point)))
-      )
+        (let ((cut-at-point (cscope-find-prev-history-separator-start
+                             (- (point-max) cscope-max-cscope-buffer-size))))
+          (when cut-at-point
+            (delete-region (point-min) cut-at-point)))))
+
     (if (and done (eq old-buffer buffer) cscope-first-match)
 	(cscope-help))
     (set-buffer old-buffer)
