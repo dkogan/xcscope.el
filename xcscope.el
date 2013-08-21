@@ -1292,12 +1292,10 @@ The text properties to be added:
     (insert text)
     (setq end (point)
 	  plist (plist-put plist 'cscope-file filename))
-    (if line-number
-	(progn
-	  (if (stringp line-number)
-	      (setq line-number (string-to-number line-number)))
-	  (setq plist (plist-put plist 'cscope-line-number line-number))
-	  ))
+    (when line-number
+      (when (stringp line-number)
+        (setq line-number (string-to-number line-number)))
+      (setq plist (plist-put plist 'cscope-line-number line-number)))
 
     ;; If I was given the input search text, fuzzy search with that. Otherwise
     ;; use the line I got from scope, unless it is "<unknown>". See docstring
