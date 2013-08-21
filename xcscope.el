@@ -1275,13 +1275,6 @@ directory should begin.")
 ;; Internal functions and variables
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defvar cscope-common-text-plist
-  (let (plist)
-    (setq plist (plist-put plist 'mouse-face 'cscope-mouse-face))
-    plist)
-  "List of common text properties to be added to the entry line.")
-
-
 (defun cscope-insert-with-text-properties (text filename &optional line-number line)
   "Insert an entry with given TEXT, add entry attributes as text properties.
 The text properties to be added:
@@ -1290,8 +1283,11 @@ The text properties to be added:
   cscope-line-number
 - cscope-last-user-search used to keep track of the symbol that was searched for. This
   can now vary since unrelated searches can live in the same buffer"
-  (let ((plist (and cscope-use-face cscope-common-text-plist))
-	beg end)
+  (let (plist beg end)
+
+    (when cscope-use-face
+      (setq plist (plist-put plist 'mouse-face 'cscope-mouse-face)))
+
     (setq beg (point))
     (insert text)
     (setq end (point)
