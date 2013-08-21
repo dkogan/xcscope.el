@@ -2433,30 +2433,36 @@ file."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun cscope-extract-symbol-at-cursor (extract-filename)
-  (let* ( (symbol-chars (if extract-filename
-			    cscope-filename-chars
-			  cscope-symbol-chars))
-	  (symbol-char-regexp (concat "[" symbol-chars "]"))
-	  )
-    (save-excursion
-      (buffer-substring-no-properties
-       (progn
-	 (if (not (looking-at symbol-char-regexp))
-	     (re-search-backward "\\w" nil t))
-	 (skip-chars-backward symbol-chars)
-	 (point))
-       (progn
-	 (skip-chars-forward symbol-chars)
-	 (point)
-	 )))
-    ))
+(defun cscope-extract-symbol-at-cursor (extract-filename try-to-use-region)
+  (if (and try-to-use-region (use-region-p))
+
+      ;; We have a region and we were asked to use it. This usually happens when
+      ;; looking for text strings or regular expressions
+      (buffer-substring-no-properties (region-beginning) (region-end))
+
+    ;; Try to infer symbol from the text
+    (let* ( (symbol-chars (if extract-filename
+                              cscope-filename-chars
+                            cscope-symbol-chars))
+            (symbol-char-regexp (concat "[" symbol-chars "]"))
+            )
+      (save-excursion
+        (buffer-substring-no-properties
+         (progn
+           (if (not (looking-at symbol-char-regexp))
+               (re-search-backward "\\w" nil t))
+           (skip-chars-backward symbol-chars)
+           (point))
+         (progn
+           (skip-chars-forward symbol-chars)
+           (point)
+           )))
+      )))
 
 
-(defun cscope-prompt-for-symbol (prompt extract-filename)
+(defun cscope-prompt-for-symbol (prompt extract-filename try-to-use-region)
   "Prompt the user for a cscope symbol."
-  (let (sym)
-    (setq sym (cscope-extract-symbol-at-cursor extract-filename))
+  (let ((sym (cscope-extract-symbol-at-cursor extract-filename try-to-use-region)))
     (if (or (not sym)
 	    (string= sym "")
 	    (not (and cscope-running-in-xemacs
@@ -2474,7 +2480,7 @@ file."
 (defun cscope-find-this-symbol (symbol)
   "Locate a symbol in source code."
   (interactive (list
-		(cscope-prompt-for-symbol "Find this symbol: " nil)
+		(cscope-prompt-for-symbol "Find this symbol: " nil nil)
 		))
   (setq cscope-adjust t)	 ;; Use fuzzy matching.
   (setq cscope-symbol symbol)
@@ -2487,7 +2493,7 @@ file."
 (defun cscope-find-global-definition (symbol)
   "Find a symbol's global definition."
   (interactive (list
-		(cscope-prompt-for-symbol "Find this global definition: " nil)
+		(cscope-prompt-for-symbol "Find this global definition: " nil nil)
 		))
   (setq cscope-adjust t)	 ;; Use fuzzy matching.
   (setq cscope-symbol symbol)
@@ -2500,7 +2506,7 @@ file."
 (defun cscope-find-global-definition-no-prompting ()
   "Find a symbol's global definition without prompting."
   (interactive)
-  (let ( (symbol (cscope-extract-symbol-at-cursor nil)))
+  (let ( (symbol (cscope-extract-symbol-at-cursor nil nil)))
     (setq cscope-adjust t)       ;; Use fuzzy matching.
     (setq cscope-symbol symbol)
     (cscope-call (format "Finding global definition: %s" symbol)
@@ -2513,7 +2519,7 @@ file."
   "Display functions called by a function."
   (interactive (list
 		(cscope-prompt-for-symbol
-		 "Find functions called by this function: " nil)
+		 "Find functions called by this function: " nil nil)
 		))
   (setq cscope-adjust nil)	 ;; Disable fuzzy matching.
   (setq cscope-symbol symbol)
@@ -2527,7 +2533,7 @@ file."
   "Display functions calling a function."
   (interactive (list
 		(cscope-prompt-for-symbol
-		 "Find functions calling this function: " nil)
+		 "Find functions calling this function: " nil nil)
 		))
   (setq cscope-adjust t)	 ;; Use fuzzy matching.
   (setq cscope-symbol symbol)
@@ -2540,7 +2546,7 @@ file."
 (defun cscope-find-this-text-string (symbol)
   "Locate where a text string occurs."
   (interactive (list
-		(cscope-prompt-for-symbol "Find this text string: " nil)
+		(cscope-prompt-for-symbol "Find this text string: " nil t)
 		))
   (setq cscope-adjust t)	 ;; Use fuzzy matching.
   (setq cscope-symbol symbol)
@@ -2554,7 +2560,7 @@ file."
   "Run egrep over the cscope database."
   (interactive (list
 		(let (cscope-no-mouse-prompts)
-		  (cscope-prompt-for-symbol "Find this egrep pattern: " nil))
+		  (cscope-prompt-for-symbol "Find this egrep pattern: " nil t))
 		))
   (setq cscope-adjust t)	 ;; Use fuzzy matching.
   (setq cscope-symbol symbol)
@@ -2568,7 +2574,7 @@ file."
   "Locate a file."
   (interactive (list
 		(let (cscope-no-mouse-prompts)
-		  (cscope-prompt-for-symbol "Find this file: " t))
+		  (cscope-prompt-for-symbol "Find this file: " t nil))
 		))
   (setq cscope-adjust nil)	 ;; Disable fuzzy matching.
   (setq cscope-symbol symbol)
@@ -2583,7 +2589,7 @@ file."
   (interactive (list
 		(let (cscope-no-mouse-prompts)
 		  (cscope-prompt-for-symbol
-		   "Find files #including this file: " t))
+		   "Find files #including this file: " t nil))
 		))
   (setq cscope-adjust t)	;; Use fuzzy matching.
   (setq cscope-symbol symbol)
@@ -2596,7 +2602,7 @@ file."
 (defun cscope-find-assignments-to-this-symbol (symbol)
   "Locate assignments to a symbol in the source code."
   (interactive (list
-		(cscope-prompt-for-symbol "Find assignments to this symbol: " nil)
+		(cscope-prompt-for-symbol "Find assignments to this symbol: " nil nil)
 		))
   (setq cscope-adjust t)	 ;; Use fuzzy matching.
   (setq cscope-symbol symbol)
