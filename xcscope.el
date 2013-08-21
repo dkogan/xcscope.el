@@ -1649,10 +1649,9 @@ Point is not saved on mark ring."
   "Body for 'cscope-history-forward-result' and 'cscope-history-backward-result'"
   (goto-char
    (cond
-    (forward (or (cscope-find-next-history-separator-end (point))
+    (do-next (or (cscope-find-next-separator-end separator-type (point))
                  (error "The end of the *cscope* buffer has been reached")))
-    (t       (or (cscope-find-prev-history-separator-end
-                  (cscope-find-prev-history-separator-start (point)))
+    (t       (or (cscope-find-prev-separator-end separator-type (point))
                  (error "The beginning of the *cscope* buffer has been reached"))))))
 
 (defun cscope-history-forward-result ()
