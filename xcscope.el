@@ -1089,20 +1089,25 @@ searching.")
 (make-variable-buffer-local 'cscope-stop-at-first-match-dir-meta)
 
 
-(defvar cscope-symbol nil
-  "The last symbol searched for.")
+(defvar cscope-last-user-search nil
+  "If non-nil, the location of text reported by cscope should be
+adjusted by searching for the text that the user searched for. If
+the sources are exactly the same as when the cscope database was
+made, then the locations reported by cscope will be right.
+Otherwise they could be wrong. If non-nil, this is the string the
+user searched for, and the string we look for before reporting
+the results to the user.
+
+If nil, then this fuzzy search is still attempted, but instead of
+searching for the user's input, we search for the line contents
+reported by cscope. This is more likely to fail than searching
+for the user's input, but it's better than not doing a fuzzy
+search at all. This is nil in cases when the user string may not
+appear verbatim in the results, such as with regex searches,
+find-called-functions searches, find-file searches, etc")
 
 
-(defvar cscope-adjust t
-  "True if the location of symbols reported by the cscope
-database should be adjusted by searching for the text that should
-appear there. If the sources are exactly the same as when the
-cscope database was made, then the locations reported by cscope
-will be right. Otherwise they could be wrong. 'cscope-adjust'
-turns this fuzzy matching on/off.")
-
-
-(defvar cscope-adjust-range 1000
+(defvar cscope-fuzzy-search-range 1000
   "How far the point should be adjusted if the symbol is not on the line
 specified by the cscope database.")
 
@@ -1282,13 +1287,13 @@ directory should begin.")
   "List of common text properties to be added to the entry line.")
 
 
-(defun cscope-insert-with-text-properties (text filename &optional line-number)
+(defun cscope-insert-with-text-properties (text filename &optional line-number line)
   "Insert an entry with given TEXT, add entry attributes as text properties.
 The text properties to be added:
 - common property: mouse-face,
 - properties are used to open target file and its location: cscope-file,
   cscope-line-number
-- cscope-symbol used to keep track of the symbol that was searched for. This
+- cscope-last-user-search used to keep track of the symbol that was searched for. This
   can now vary since unrelated searches can live in the same buffer"
   (let ((plist (and cscope-use-face cscope-common-text-plist))
 	beg end)
@@ -1302,8 +1307,17 @@ The text properties to be added:
 	      (setq line-number (string-to-number line-number)))
 	  (setq plist (plist-put plist 'cscope-line-number line-number))
 	  ))
-    (setq plist (plist-put plist 'cscope-symbol cscope-symbol))
-    (setq plist (plist-put plist 'cscope-adjust cscope-adjust))
+
+    ;; If I was given the input search text, fuzzy search with that. Otherwise
+    ;; use the line I got from scope, unless it is "<unknown>". See docstring
+    ;; for 'cscope-last-user-search' for more details
+    (let ((fuzzy-property (or cscope-last-user-search
+                              (if (string= line "<unknown>")
+                                  nil line))))
+      (when fuzzy-property
+        (setq plist (plist-put plist 'cscope-fuzzy-search-text
+                               fuzzy-property))))
+
     (add-text-properties beg end plist)
     ))
 
@@ -1338,10 +1352,9 @@ not selected.  Save point on mark ring before goto
 LINE-NUMBER if optional argument SAVE-MARK-P is non-nil.
 Put `overlay-arrow-string' if arrow-p is non-nil.
 Returns the window displaying BUFFER."
-  (let ( (file        (elt navprops 0))
-         (line-number (elt navprops 1))
-         (symbol      (elt navprops 2))
-         (adjust      (elt navprops 3))
+  (let ( (file              (elt navprops 0))
+         (line-number       (elt navprops 1))
+         (fuzzy-search-text (elt navprops 2))
          buffer old-pos old-point new-point forward-point backward-point
          line-end line-length)
     (if (and (stringp file)
@@ -1360,15 +1373,13 @@ Returns the window displaying BUFFER."
 		(goto-line line-number)
 		(setq old-point (point))
 
-                ;; Look around the location that cscope reported to find the
-                ;; text that should appear there. If the sources are exactly the
-                ;; same as when the cscope database was made, then the locations
-                ;; reported by cscope will be right. Otherwise they could be
-                ;; wrong, and this code is meant to compensate for some position
-                ;; variability. 'adjust' turns this "fuzzy matching"
-                ;; on/off and 'cscope-adjust-range' specifies how far we should
-                ;; look
-		(if (and adjust cscope-adjust-range)
+                ;; Here I perform a fuzzy search. If the user has edited the
+                ;; sources after building the cscope database, cscope may have
+                ;; the wrong line numbers. Here I try to correct for this by
+                ;; searching for the cscope results in the text around where
+                ;; cscope said they should appear. See docstring for
+                ;; 'cscope-last-user-search' for more details
+		(if (and fuzzy-search-text cscope-fuzzy-search-range)
 		    (progn
 		      ;; Calculate the length of the line specified by cscope.
 		      (end-of-line)
@@ -1378,14 +1389,14 @@ Returns the window displaying BUFFER."
 
 		      ;; Search forward and backward for the pattern.
 		      (setq forward-point (search-forward
-					   symbol
+					   fuzzy-search-text
 					   (+ old-point
-					      cscope-adjust-range) t))
+					      cscope-fuzzy-search-range) t))
 		      (goto-char old-point)
 		      (setq backward-point (search-backward
-					    symbol
+					    fuzzy-search-text
 					    (- old-point
-					       cscope-adjust-range) t))
+					       cscope-fuzzy-search-range) t))
 		      (if forward-point
 			  (progn
 			    (if backward-point
@@ -1489,8 +1500,7 @@ since the trailing newline is NOT propertized."
       (beginning-of-line)
       (vector (get-text-property (point) 'cscope-file)
               (get-text-property (point) 'cscope-line-number)
-              (get-text-property (point) 'cscope-symbol)
-              (get-text-property (point) 'cscope-adjust)))))
+              (get-text-property (point) 'cscope-fuzzy-search-text)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions in *cscope* buffer which lists the search results
@@ -1950,7 +1960,8 @@ using the mouse."
 						 line-number
 						 line)
 			 (expand-file-name file)
-			 line-number)
+			 line-number
+                         line)
 			(insert "\n")
 			(setq cscope-last-file file)
 			(if cscope-first-match
@@ -1958,8 +1969,7 @@ using the mouse."
 			  (setq cscope-first-match
 				(vector (expand-file-name file)
                                         (string-to-number line-number)
-                                        cscope-symbol
-                                        cscope-adjust)))
+                                        cscope-last-user-search)))
 			))
 		  (insert line "\n")
 		  ))
@@ -2482,8 +2492,7 @@ file."
   (interactive (list
 		(cscope-prompt-for-symbol "Find this symbol: " nil nil)
 		))
-  (setq cscope-adjust t)	 ;; Use fuzzy matching.
-  (setq cscope-symbol symbol)
+  (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
   (cscope-call (format "Finding symbol: %s" symbol)
                (list "-0" symbol) nil 'cscope-process-filter
                'cscope-process-sentinel)
@@ -2495,8 +2504,7 @@ file."
   (interactive (list
 		(cscope-prompt-for-symbol "Find this global definition: " nil nil)
 		))
-  (setq cscope-adjust t)	 ;; Use fuzzy matching.
-  (setq cscope-symbol symbol)
+  (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
   (cscope-call (format "Finding global definition: %s" symbol)
                (list "-1" symbol) nil 'cscope-process-filter
                'cscope-process-sentinel)
@@ -2507,8 +2515,7 @@ file."
   "Find a symbol's global definition without prompting."
   (interactive)
   (let ( (symbol (cscope-extract-symbol-at-cursor nil nil)))
-    (setq cscope-adjust t)       ;; Use fuzzy matching.
-    (setq cscope-symbol symbol)
+    (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
     (cscope-call (format "Finding global definition: %s" symbol)
 		 (list "-1" symbol) nil 'cscope-process-filter
 		 'cscope-process-sentinel)
@@ -2521,8 +2528,7 @@ file."
 		(cscope-prompt-for-symbol
 		 "Find functions called by this function: " nil nil)
 		))
-  (setq cscope-adjust nil)	 ;; Disable fuzzy matching.
-  (setq cscope-symbol symbol)
+  (setq cscope-last-user-search nil)  ;; Fuzzy match with the cscope results
   (cscope-call (format "Finding functions called by: %s" symbol)
                (list "-2" symbol) nil 'cscope-process-filter
                'cscope-process-sentinel)
@@ -2535,8 +2541,7 @@ file."
 		(cscope-prompt-for-symbol
 		 "Find functions calling this function: " nil nil)
 		))
-  (setq cscope-adjust t)	 ;; Use fuzzy matching.
-  (setq cscope-symbol symbol)
+  (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
   (cscope-call (format "Finding functions calling: %s" symbol)
                (list "-3" symbol) nil 'cscope-process-filter
                'cscope-process-sentinel)
@@ -2548,8 +2553,7 @@ file."
   (interactive (list
 		(cscope-prompt-for-symbol "Find this text string: " nil t)
 		))
-  (setq cscope-adjust t)	 ;; Use fuzzy matching.
-  (setq cscope-symbol symbol)
+  (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
   (cscope-call (format "Finding text string: %s" symbol)
                (list "-4" symbol) nil 'cscope-process-filter
                'cscope-process-sentinel)
@@ -2562,8 +2566,7 @@ file."
 		(let (cscope-no-mouse-prompts)
 		  (cscope-prompt-for-symbol "Find this egrep pattern: " nil t))
 		))
-  (setq cscope-adjust t)	 ;; Use fuzzy matching.
-  (setq cscope-symbol symbol)
+  (setq cscope-last-user-search nil)  ;; Fuzzy match with the cscope results
   (cscope-call (format "Finding egrep pattern: %s" symbol)
                (list "-6" symbol) nil 'cscope-process-filter
                'cscope-process-sentinel)
@@ -2576,8 +2579,11 @@ file."
 		(let (cscope-no-mouse-prompts)
 		  (cscope-prompt-for-symbol "Find this file: " t nil))
 		))
-  (setq cscope-adjust nil)	 ;; Disable fuzzy matching.
-  (setq cscope-symbol symbol)
+
+  ;; Try to fuzzy match with the cscope results; this will fail in this case
+  ;; however since cscope will not return any particular text here; it will by
+  ;; "<unknown>"
+  (setq cscope-last-user-search nil)
   (cscope-call (format "Finding file: %s" symbol)
                (list "-7" symbol) nil 'cscope-process-filter
                'cscope-process-sentinel)
@@ -2591,8 +2597,7 @@ file."
 		  (cscope-prompt-for-symbol
 		   "Find files #including this file: " t nil))
 		))
-  (setq cscope-adjust t)	;; Use fuzzy matching.
-  (setq cscope-symbol symbol)
+  (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
   (cscope-call (format "Finding files #including file: %s" symbol)
                (list "-8" symbol) nil 'cscope-process-filter
                'cscope-process-sentinel)
@@ -2604,8 +2609,7 @@ file."
   (interactive (list
 		(cscope-prompt-for-symbol "Find assignments to this symbol: " nil nil)
 		))
-  (setq cscope-adjust t)	 ;; Use fuzzy matching.
-  (setq cscope-symbol symbol)
+  (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
   (cscope-call (format "Finding assignments to symbol: %s" symbol)
                (list "-9" symbol) nil 'cscope-process-filter
                'cscope-process-sentinel)
