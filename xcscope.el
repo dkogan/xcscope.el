@@ -954,12 +954,15 @@ Must end with a newline.")
   (define-key cscope-list-entry-keymap "P" 'cscope-prev-file)
   (define-key cscope-list-entry-keymap "u" 'cscope-pop-mark)
   ;; ---
-  (define-key cscope-list-entry-keymap (kbd "M-P") 'cscope-history-backward-result)
+  (define-key cscope-list-entry-keymap (kbd "p")   'cscope-history-backward-line)
   (define-key cscope-list-entry-keymap (kbd "M-p") 'cscope-history-backward-file)
-  (define-key cscope-list-entry-keymap (kbd "M-N") 'cscope-history-forward-result)
+  (define-key cscope-list-entry-keymap (kbd "M-P") 'cscope-history-backward-result)
+  (define-key cscope-list-entry-keymap (kbd "n")   'cscope-history-forward-line)
   (define-key cscope-list-entry-keymap (kbd "M-n") 'cscope-history-forward-file)
-  (define-key cscope-list-entry-keymap (kbd "M-K") 'cscope-history-kill-result)
+  (define-key cscope-list-entry-keymap (kbd "M-N") 'cscope-history-forward-result)
+  (define-key cscope-list-entry-keymap (kbd "k")   'cscope-history-kill-line)
   (define-key cscope-list-entry-keymap (kbd "M-k") 'cscope-history-kill-file)
+  (define-key cscope-list-entry-keymap (kbd "M-K") 'cscope-history-kill-result)
   ;; ---
   (define-key cscope-list-entry-keymap "a" 'cscope-set-initial-directory)
   (define-key cscope-list-entry-keymap "A" 'cscope-unset-initial-directory)
@@ -1200,10 +1203,13 @@ directory should begin.")
       (menu-navigation
        '([ "History backward result"   cscope-history-backward-result t ]
          [ "History backward file"     cscope-history-backward-file t ]
+         [ "History backward line"     cscope-history-backward-line t ]
          [ "History forward result"    cscope-history-forward-result t ]
          [ "History forward file"      cscope-history-forward-file t ]
+         [ "History forward line"      cscope-history-forward-line t ]
          [ "History kill result"       cscope-history-kill-result t ]
          [ "History kill file"         cscope-history-kill-file t ]
+         [ "History kill line"         cscope-history-kill-line t ]
          "-----------"))
 
       (menu-after
@@ -1431,52 +1437,52 @@ Returns the window displaying BUFFER."
     )
   window)
 
-(defun cscope-next-separator-boundary (at)
+(defun cscope-next-separator-boundary (separator-type at)
   "Shorthand used for the separator navigation routines"
-  (next-single-property-change at 'cscope-history-separator))
+  (next-single-property-change at separator-type))
 
-(defun cscope-prev-separator-boundary (at)
+(defun cscope-prev-separator-boundary (separator-type at)
   "Shorthand used for the separator navigation routines"
-  (previous-single-property-change at 'cscope-history-separator))
+  (previous-single-property-change at separator-type))
 
-(defun cscope-at-separator-p (at)
+(defun cscope-at-separator-p (separator-type at)
   "Shorthand used for the separator navigation routines"
-  (get-text-property at 'cscope-history-separator))
+  (get-text-property at separator-type))
 
-(defun cscope-find-next-history-separator-end (at)
+(defun cscope-find-next-separator-end (separator-type at)
   "Finds the next end of the history separator after 'at'"
 
   (when (and at
-             (setq at (cscope-next-separator-boundary at)))
-    (if (cscope-at-separator-p at)
-        (cscope-next-separator-boundary at)
+             (setq at (cscope-next-separator-boundary separator-type at)))
+    (if (cscope-at-separator-p separator-type at)
+        (cscope-next-separator-boundary separator-type at)
       at)))
 
-(defun cscope-find-next-history-separator-start (at)
+(defun cscope-find-next-separator-start (separator-type at)
   "Finds the next start of the history separator after 'at'"
 
   (when (and at
-             (setq at (cscope-next-separator-boundary at)))
-    (if (not (cscope-at-separator-p at))
-        (cscope-next-separator-boundary at)
+             (setq at (cscope-next-separator-boundary separator-type at)))
+    (if (not (cscope-at-separator-p separator-type at))
+        (cscope-next-separator-boundary separator-type at)
       at)))
 
-(defun cscope-find-prev-history-separator-end (at)
+(defun cscope-find-prev-separator-end (separator-type at)
   "Finds the previous end of the history separator before 'at'"
 
   (when (and at
-             (setq at (cscope-prev-separator-boundary at)))
-    (if (cscope-at-separator-p at)
-        (cscope-prev-separator-boundary at)
+             (setq at (cscope-prev-separator-boundary separator-type at)))
+    (if (cscope-at-separator-p separator-type at)
+        (cscope-prev-separator-boundary separator-type at)
       at)))
 
-(defun cscope-find-prev-history-separator-start (at)
+(defun cscope-find-prev-separator-start (separator-type at)
   "Finds the previous start of the history separator before 'at'"
 
   (when (and at
-             (setq at (cscope-prev-separator-boundary at)))
-    (if (not (cscope-at-separator-p at))
-        (cscope-prev-separator-boundary at)
+             (setq at (cscope-prev-separator-boundary separator-type at)))
+    (if (not (cscope-at-separator-p separator-type at))
+        (cscope-prev-separator-boundary separator-type at)
       at)))
 
 (defun cscope-get-navigation-properties (&optional at buffer)
@@ -1645,8 +1651,10 @@ Point is not saved on mark ring."
   (interactive)
   (cscope-buffer-search nil nil))
 
-(defun cscope-history-forward-backward (forward)
-  "Body for 'cscope-history-forward-result' and 'cscope-history-backward-result'"
+(defun cscope-history-forward-backward (separator-type do-next)
+  "Body for 'cscope-history-forward-result'/'cscope-history-backward-result'
+and 'cscope-history-forward-file'/'cscope-history-backward-file'
+and 'cscope-history-forward-line'/'cscope-history-backward-line'"
   (goto-char
    (cond
     (do-next (or (cscope-find-next-separator-end separator-type (point))
@@ -1654,29 +1662,61 @@ Point is not saved on mark ring."
     (t       (or (cscope-find-prev-separator-end separator-type (point))
                  (error "The beginning of the *cscope* buffer has been reached"))))))
 
+(defun cscope-history-kill (separator-type)
+  "Delete a cscope set of results/file result/line from the *cscope* buffer."
+  (let* ((beg (or (cscope-find-prev-separator-start separator-type (point))
+                  (point-min)))
+         (end (or (cscope-find-next-separator-start separator-type beg)
+                  (point-max))))
+
+      (delete-region beg end)))
+
 (defun cscope-history-forward-result ()
   "Navigate to the next stored search results in the *cscope*
 buffer."
   (interactive)
-  (cscope-history-forward-backward t))
+  (cscope-history-forward-backward 'cscope-history-separator t))
 
 (defun cscope-history-backward-result ()
   "Navigate to the previous stored search results in the *cscope*
 buffer."
   (interactive)
-  (cscope-history-forward-backward nil))
+  (cscope-history-forward-backward 'cscope-history-separator nil))
 
 (defun cscope-history-kill-result ()
   "Delete a cscope result from the *cscope* buffer."
   (interactive)
+  (cscope-history-kill 'cscope-history-separator))
 
-  (let* ((beg (or (cscope-find-prev-history-separator-start (point))
-                  (point-min)))
-         (end (or (cscope-find-next-history-separator-start beg)
-                  (point-max))))
+(defun cscope-history-forward-file ()
+  "Navigate to the next file results in the *cscope* buffer."
+  (interactive)
+  (cscope-history-forward-backward 'cscope-file-separator t))
 
-      (delete-region beg end)))
+(defun cscope-history-backward-file ()
+  "Navigate to the previous file results in the *cscope* buffer."
+  (interactive)
+  (cscope-history-forward-backward 'cscope-file-separator nil))
 
+(defun cscope-history-kill-file ()
+  "Delete a cscope file set from the *cscope* buffer."
+  (interactive)
+  (cscope-history-kill 'cscope-file-separator))
+
+(defun cscope-history-forward-line ()
+  "Navigate to the next result line in the *cscope* buffer."
+  (interactive)
+  (cscope-history-forward-backward 'cscope-line-separator t))
+
+(defun cscope-history-backward-line ()
+  "Navigate to the previous result line in the *cscope* buffer."
+  (interactive)
+  (cscope-history-forward-backward 'cscope-line-separator nil))
+
+(defun cscope-history-kill-line ()
+  "Delete a cscope line from the *cscope* buffer."
+  (interactive)
+  (cscope-history-kill 'cscope-line-separator))
 
 (defun cscope-pop-mark ()
   "Pop back to where cscope was last invoked."
@@ -1943,7 +1983,8 @@ using the mouse."
 			    (setq cscope-first-match-point (point)))
 			;; ... and insert the line, with the
 			;; appropriate indentation.
-			(cscope-insert-with-text-properties
+			(put-text-property (1- (point)) (point) 'cscope-line-separator t)
+                        (cscope-insert-with-text-properties
 			 (cscope-make-entry-line function-name
 						 line-number
 						 line)
@@ -2052,7 +2093,8 @@ using the mouse."
                  (> cscope-max-cscope-buffer-size 0)
                  (> (- (point-max) (point-min)) cscope-max-cscope-buffer-size))
 
-        (let ((cut-at-point (cscope-find-prev-history-separator-start
+        (let ((cut-at-point (cscope-find-prev-separator-start
+                             'cscope-history-separator
                              (- (point-max) cscope-max-cscope-buffer-size))))
           (when cut-at-point
             (delete-region (point-min) cut-at-point)))))
