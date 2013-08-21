@@ -2178,19 +2178,19 @@ SENTINEL-FUNC are optional process filter and sentinel, respectively."
     (setq directory (cscope-canonicalize-directory
                      (or cscope-initial-directory directory)))
     (if (eq outbuf old-buffer) ;; In the *cscope* buffer.
-	(if cscope-marker-window
-	    (progn
+        (let ((marker-buf (window-buffer cscope-marker-window)))
+          (when marker-buf
 	      ;; Assume that cscope-marker-window is the window, from the
 	      ;; users perspective, from which the search was launched and the
 	      ;; window that should be returned to upon cscope-pop-mark.
-	      (set-buffer (window-buffer cscope-marker-window))
-	      (setq cscope-marker (point-marker))
-	      (set-buffer old-buffer)))
-	(progn ;; Not in the *cscope buffer.
+            (with-current-buffer marker-buf
+              (setq cscope-marker (point-marker)))))
+
+      ;; Not in the *cscope buffer.
 	  ;; Set the cscope-marker-window to whichever window this search
 	  ;; was launched from.
 	  (setq cscope-marker-window (get-buffer-window old-buffer))
-	  (setq cscope-marker (point-marker))))
+      (setq cscope-marker (point-marker)))
     (save-excursion
       (set-buffer outbuf)
       (if cscope-display-times
