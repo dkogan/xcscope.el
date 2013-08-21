@@ -1069,11 +1069,6 @@ searching.")
 (make-variable-buffer-local 'cscope-first-match-point)
 
 
-(defvar cscope-item-start nil
-  "The point location of the start of a search's output, before header info.")
-(make-variable-buffer-local 'cscope-output-start)
-
-
 (defvar cscope-output-start nil
   "The point location of the start of a search's output.")
 (make-variable-buffer-local 'cscope-output-start)
