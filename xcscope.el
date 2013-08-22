@@ -836,7 +836,7 @@ be removed by quitting the cscope buffer."
 
 (defconst cscope-separator-line
   (propertize
-   "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+   "===============================================================================\n"
    'cscope-history-separator t)
   "Line of text to use as a visual separator.
 Must end with a newline.")
