@@ -1039,19 +1039,6 @@ nil (meaning, \"no flags\").")
   "The list of database directories already searched.")
 (make-variable-buffer-local 'cscope-searched-dirs)
 
-
-(defvar cscope-filter-func nil
-  "Internal variable for holding the filter function to use (if any) when
-searching.")
-(make-variable-buffer-local 'cscope-filter-func)
-
-
-(defvar cscope-sentinel-func nil
-  "Internal variable for holding the sentinel function to use (if any) when
-searching.")
-(make-variable-buffer-local 'cscope-filter-func)
-
-
 (defvar cscope-last-file nil
   "The file referenced by the last line of cscope process output.")
 (make-variable-buffer-local 'cscope-last-file)
@@ -2178,41 +2165,36 @@ using the mouse."
 	(setq options (cons "-f" options))
 	(setq cscope-output-start (point))
 	(setq default-directory cscope-directory)
-	(if cscope-filter-func
-	    (progn
-	      (setq cscope-process-output nil
-		    cscope-last-file nil
-		    )
-	      (setq cscope-process
-		    (apply 'start-file-process "cscope" outbuf
-			   cscope-program options))
-	      (set-process-filter cscope-process cscope-filter-func)
-	      (set-process-sentinel cscope-process cscope-sentinel-func)
-	      (set-marker (process-mark cscope-process) (point))
-	      (process-kill-without-query cscope-process)
-	      (if cscope-running-in-xemacs
-		  (setq modeline-process ": Searching ..."))
-	      )
-	  (apply 'call-process cscope-program nil outbuf t options)
-	  )
+
+        (setq cscope-process-output nil
+              cscope-last-file nil
+              )
+        (setq cscope-process
+              (apply 'start-file-process "cscope" outbuf
+                     cscope-program options))
+        (set-process-filter cscope-process 'cscope-process-filter)
+        (set-process-sentinel cscope-process 'cscope-process-sentinel)
+        (set-marker (process-mark cscope-process) (point))
+        (process-kill-without-query cscope-process)
+        (if cscope-running-in-xemacs
+            (setq modeline-process ": Searching ..."))
 	t
 	))
     ))
 
 
-(defun cscope-call (msg args &optional directory filter-func sentinel-func)
+(defun cscope-call (basemsg search-id symbol)
   "Generic function to call to process cscope requests.
-ARGS is a list of command-line arguments to pass to the cscope
-process.  DIRECTORY is the current working directory to use (generally,
-the directory in which the cscope database is located, but not
-necessarily), if different that the current one.  FILTER-FUNC and
-SENTINEL-FUNC are optional process filter and sentinel, respectively."
+BASEMSG is a message describing this search; SEARCH-ID is a
+numeric id indicating to the cscope backend what kind of search
+this is."
   (let ( (outbuf (get-buffer-create cscope-output-buffer-name))
-         (old-buffer (current-buffer)) )
+         (old-buffer (current-buffer))
+         (directory (cscope-canonicalize-directory cscope-initial-directory))
+         (msg (concat basemsg " " symbol))
+         (args (list (format "-%d" search-id) symbol)))
     (if cscope-process
 	(error "A cscope search is still in progress -- only one at a time is allowed"))
-    (setq directory (cscope-canonicalize-directory
-                     (or cscope-initial-directory directory)))
     (if (eq outbuf old-buffer) ;; In the *cscope* buffer.
         (let ((marker-buf (window-buffer cscope-marker-window)))
           (when marker-buf
@@ -2238,8 +2220,6 @@ SENTINEL-FUNC are optional process filter and sentinel, respectively."
 	    cscope-search-list (cscope-find-info directory)
 	    cscope-searched-dirs nil
 	    cscope-command-args args
-	    cscope-filter-func filter-func
-	    cscope-sentinel-func sentinel-func
 	    cscope-first-match-point nil
 	    cscope-stop-at-first-match-dir-meta (memq t cscope-search-list)
 	    cscope-matched-multiple nil)
@@ -2516,9 +2496,7 @@ file."
 		(cscope-prompt-for-symbol "Find this symbol: " nil nil)
 		))
   (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
-  (cscope-call (format "Finding symbol: %s" symbol)
-               (list "-0" symbol) nil 'cscope-process-filter
-               'cscope-process-sentinel)
+  (cscope-call "Finding symbol:" 0 symbol)
   )
 
 
@@ -2528,9 +2506,7 @@ file."
 		(cscope-prompt-for-symbol "Find this global definition: " nil nil)
 		))
   (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
-  (cscope-call (format "Finding global definition: %s" symbol)
-               (list "-1" symbol) nil 'cscope-process-filter
-               'cscope-process-sentinel)
+  (cscope-call "Finding global definition:" 1 symbol)
   )
 
 
@@ -2539,9 +2515,7 @@ file."
   (interactive)
   (let ( (symbol (cscope-extract-symbol-at-cursor nil nil)))
     (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
-    (cscope-call (format "Finding global definition: %s" symbol)
-		 (list "-1" symbol) nil 'cscope-process-filter
-		 'cscope-process-sentinel)
+    (cscope-call "Finding global definition:" 1 symbol)
     ))
 
 
@@ -2552,9 +2526,7 @@ file."
 		 "Find functions called by this function: " nil nil)
 		))
   (setq cscope-last-user-search nil)  ;; Fuzzy match with the cscope results
-  (cscope-call (format "Finding functions called by: %s" symbol)
-               (list "-2" symbol) nil 'cscope-process-filter
-               'cscope-process-sentinel)
+  (cscope-call "Finding functions called by:" 2 symbol)
   )
 
 
@@ -2565,9 +2537,7 @@ file."
 		 "Find functions calling this function: " nil nil)
 		))
   (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
-  (cscope-call (format "Finding functions calling: %s" symbol)
-               (list "-3" symbol) nil 'cscope-process-filter
-               'cscope-process-sentinel)
+  (cscope-call "Finding functions calling:" 3 symbol)
   )
 
 
@@ -2577,9 +2547,7 @@ file."
 		(cscope-prompt-for-symbol "Find this text string: " nil t)
 		))
   (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
-  (cscope-call (format "Finding text string: %s" symbol)
-               (list "-4" symbol) nil 'cscope-process-filter
-               'cscope-process-sentinel)
+  (cscope-call "Finding text string:" 4 symbol)
   )
 
 
@@ -2590,9 +2558,7 @@ file."
 		  (cscope-prompt-for-symbol "Find this egrep pattern: " nil t))
 		))
   (setq cscope-last-user-search nil)  ;; Fuzzy match with the cscope results
-  (cscope-call (format "Finding egrep pattern: %s" symbol)
-               (list "-6" symbol) nil 'cscope-process-filter
-               'cscope-process-sentinel)
+  (cscope-call "Finding egrep pattern:" 6 symbol)
   )
 
 
@@ -2607,9 +2573,7 @@ file."
   ;; however since cscope will not return any particular text here; it will by
   ;; "<unknown>"
   (setq cscope-last-user-search nil)
-  (cscope-call (format "Finding file: %s" symbol)
-               (list "-7" symbol) nil 'cscope-process-filter
-               'cscope-process-sentinel)
+  (cscope-call "Finding file:" 7 symbol)
   )
 
 
@@ -2621,9 +2585,7 @@ file."
 		   "Find files #including this file: " t nil))
 		))
   (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
-  (cscope-call (format "Finding files #including file: %s" symbol)
-               (list "-8" symbol) nil 'cscope-process-filter
-               'cscope-process-sentinel)
+  (cscope-call "Finding files #including file:" 8 symbol)
   )
 
 
@@ -2633,9 +2595,7 @@ file."
 		(cscope-prompt-for-symbol "Find assignments to this symbol: " nil nil)
 		))
   (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
-  (cscope-call (format "Finding assignments to symbol: %s" symbol)
-               (list "-9" symbol) nil 'cscope-process-filter
-               'cscope-process-sentinel)
+  (cscope-call "Finding assignments to symbol:" 9 symbol)
   )
 
 
