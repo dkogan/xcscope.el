@@ -1062,11 +1062,6 @@ searching.")
 (make-variable-buffer-local 'cscope-start-time)
 
 
-(defvar cscope-first-match nil
-  "The first match result output by cscope.")
-(make-variable-buffer-local 'cscope-first-match)
-
-
 (defvar cscope-first-match-point nil
   "Buffer location of the first match.")
 (make-variable-buffer-local 'cscope-first-match-point)
@@ -1979,8 +1974,11 @@ using the mouse."
 			       -1)
 			      (insert "\n")
 			      ))
-			(if (not cscope-first-match)
-			    (setq cscope-first-match-point (point)))
+
+			(if cscope-first-match-point
+			    (setq cscope-matched-multiple t)
+                          (setq cscope-first-match-point (point)))
+
 			;; ... and insert the line, with the
 			;; appropriate indentation.
 			(put-text-property (1- (point)) (point) 'cscope-line-separator t)
@@ -1993,12 +1991,6 @@ using the mouse."
                          line)
 			(insert "\n")
 			(setq cscope-last-file file)
-			(if cscope-first-match
-			    (setq cscope-matched-multiple t)
-			  (setq cscope-first-match
-				(vector (expand-file-name file)
-                                        (string-to-number line-number)
-                                        cscope-last-user-search)))
 			))
 		  (insert line "\n")
 		  ))
@@ -2038,7 +2030,7 @@ using the mouse."
 
 	  (setq continue
 		(and cscope-search-list
-		     (not (and cscope-first-match
+		     (not (and cscope-first-match-point
 			       cscope-stop-at-first-match-dir
 			       (not cscope-stop-at-first-match-dir-meta)))))
 	  (if continue
@@ -2079,10 +2071,12 @@ using the mouse."
 	       (set-window-point window (point-max))
 	     (goto-char (point-max))))
        )
-     ( cscope-first-match
+     ( cscope-first-match-point
        (if cscope-display-cscope-buffer
            (if (and cscope-edit-single-match (not cscope-matched-multiple))
-               (cscope-show-entry-internal cscope-first-match t))
+               (cscope-show-entry-internal
+                (cscope-get-navigation-properties cscope-first-match-point (process-buffer process))
+                t))
          (cscope-select-entry-specified-window old-buffer-window))
        )
      )
@@ -2099,7 +2093,7 @@ using the mouse."
           (when cut-at-point
             (delete-region (point-min) cut-at-point)))))
 
-    (if (and done (eq old-buffer buffer) cscope-first-match)
+    (if (and done (eq old-buffer buffer) cscope-first-match-point)
 	(cscope-help))
     (set-buffer old-buffer)
     ))
@@ -2145,7 +2139,7 @@ using the mouse."
 		      ))
 		)
 	    (progn
-	      (if (and cscope-first-match
+	      (if (and cscope-first-match-point
 		       cscope-stop-at-first-match-dir
 		       cscope-stop-at-first-match-dir-meta)
 		  (throw 'finished nil))
@@ -2246,7 +2240,6 @@ SENTINEL-FUNC are optional process filter and sentinel, respectively."
 	    cscope-command-args args
 	    cscope-filter-func filter-func
 	    cscope-sentinel-func sentinel-func
-	    cscope-first-match nil
 	    cscope-first-match-point nil
 	    cscope-stop-at-first-match-dir-meta (memq t cscope-search-list)
 	    cscope-matched-multiple nil)
