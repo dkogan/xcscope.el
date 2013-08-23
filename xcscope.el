@@ -835,7 +835,7 @@ be removed by quitting the cscope buffer."
   "List of hooks to call when entering cscope-minor-mode.")
 
 
-(defconst cscope-separator-line
+(defconst cscope-separator-text
   (propertize
    "===============================================================================\n"
    'cscope-history-separator t)
@@ -1183,7 +1183,7 @@ directory should begin.")
          "-----------"
          ))
 
-      (menu-navigation
+      (menu-only-cscope
        '([ "History backward result"   cscope-history-backward-result t ]
          [ "History backward file"     cscope-history-backward-file t ]
          [ "History backward line"     cscope-history-backward-line t ]
@@ -1258,7 +1258,7 @@ directory should begin.")
   (easy-menu-define cscope:menu
      cscope-list-entry-keymap
     "cscope menu"
-    `("Cscope" ,@menu-before ,@menu-navigation ,@menu-after)))
+    `("Cscope" ,@menu-before ,@menu-only-cscope ,@menu-after)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Internal functions and variables
@@ -2249,7 +2249,7 @@ this is."
 
       ;; don't apply the face to the trailing newline in the separator
       (let ((separator-start (point)))
-        (insert cscope-separator-line)
+        (insert cscope-separator-text)
         (when cscope-use-face
           (put-text-property separator-start (1- (point)) 'face 'cscope-separator-face)))
 
@@ -2290,7 +2290,7 @@ this is."
   "Simple sentinel to print a message saying that indexing is finished."
   (setq cscope-indexing-status-string
         (concat cscope-indexing-status-string
-                cscope-separator-line
+                cscope-separator-text
                 "\n"
                 (if (equal event "finished\n")
                     "Indexing finished\n"
@@ -2341,7 +2341,7 @@ subdirectories are indexed."
     (cscope-unix-index-files-internal
      top-directory
      (format "Creating cscope index `%s' in:\n\t%s\n\n%s"
-	     cscope-database-file top-directory cscope-separator-line)
+	     cscope-database-file top-directory cscope-separator-text)
      nil)
     ))
 
