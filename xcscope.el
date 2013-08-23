@@ -144,14 +144,15 @@
 ;;
 ;; * Locating the cscope databases:
 ;;
-;; This module will first use the variable, `cscope-database-regexps',
-;; to search for a suitable database directory.  If a database location
-;; cannot be found using this variable then a search is begun at the
-;; variable, `cscope-initial-directory', if set, or the current
-;; directory otherwise.  If the directory is not a cscope database
-;; directory then the directory's parent, parent's parent, etc. is
-;; searched until a cscope database directory is found, or the root
-;; directory is reached.  If the root directory is reached, the current
+;; This module will first use the variable, `cscope-database-regexps', to search
+;; for a suitable database directory. If a database location cannot be found
+;; using this variable then a search is begun at the variable,
+;; `cscope-initial-directory', if set. If not set and we're running this search
+;; from the *cscope* buffer, the search is begun from the directory of the
+;; search at point. Otherwise, the current directory is used. If the directory
+;; is not a cscope database directory then the directory's parent, parent's
+;; parent, etc. is searched until a cscope database directory is found, or the
+;; root directory is reached. If the root directory is reached, the current
 ;; directory will be used.
 ;;
 ;; A cscope database directory is one in which EITHER a cscope database
@@ -2040,6 +2041,12 @@ using the mouse."
 	      (setq cscope-process nil)
 	      (if cscope-running-in-xemacs
 		  (setq modeline-process ": Search complete"))
+
+              ;; save the directory of this search
+              (let ((search-start-point (cscope-find-prev-separator-end 'cscope-history-separator (point))))
+                (when search-start-point
+                  (put-text-property search-start-point (point) 'cscope-directory default-directory)))
+
 	      (if cscope-start-directory
 		  (setq default-directory cscope-start-directory))
 	      )
@@ -2188,11 +2195,21 @@ using the mouse."
 BASEMSG is a message describing this search; SEARCH-ID is a
 numeric id indicating to the cscope backend what kind of search
 this is."
-  (let ( (outbuf (get-buffer-create cscope-output-buffer-name))
-         (old-buffer (current-buffer))
-         (directory (cscope-canonicalize-directory cscope-initial-directory))
-         (msg (concat basemsg " " symbol))
-         (args (list (format "-%d" search-id) symbol)))
+  (let* ( (outbuf (get-buffer-create cscope-output-buffer-name))
+          (old-buffer (current-buffer))
+          (directory
+           (cscope-canonicalize-directory
+
+            ;; if we have an initial directory, use it. Otherwise if we're in
+            ;; *cscope*, trye to use the directory of the search at point
+            (or cscope-initial-directory
+                (and (eq outbuf old-buffer)
+                     (let ((query-point (cscope-find-prev-separator-end 'cscope-history-separator (point))))
+                       (if query-point
+                           (get-text-property query-point 'cscope-directory)
+                         nil))))))
+          (msg (concat basemsg " " symbol))
+          (args (list (format "-%d" search-id) symbol)))
     (if cscope-process
 	(error "A cscope search is still in progress -- only one at a time is allowed"))
     (if (eq outbuf old-buffer) ;; In the *cscope* buffer.
