@@ -965,6 +965,8 @@ Must end with a newline.")
   (define-key cscope-list-entry-keymap (kbd "M-k") 'cscope-history-kill-file)
   (define-key cscope-list-entry-keymap (kbd "M-K") 'cscope-history-kill-result)
   ;; ---
+  (define-key cscope-list-entry-keymap "r" 'cscope-rerun-search-at-point)
+  ;; ---
   (define-key cscope-list-entry-keymap "a" 'cscope-set-initial-directory)
   (define-key cscope-list-entry-keymap "A" 'cscope-unset-initial-directory)
   ;; ---
@@ -1193,6 +1195,8 @@ directory should begin.")
          [ "History kill result"       cscope-history-kill-result t ]
          [ "History kill file"         cscope-history-kill-file t ]
          [ "History kill line"         cscope-history-kill-line t ]
+         "-----------"
+         [ "Rerun search at point"     cscope-rerun-search-at-point t ]
          "-----------"))
 
       (menu-after
@@ -1736,6 +1740,33 @@ buffer."
     (goto-char marker-point)
     (set-buffer old-buffer)))
 
+(defun cscope-rerun-search-at-point ()
+  "Re-runs the search at the point of the *cscope* buffer. Result
+modified in-place"
+  (interactive)
+
+  (unless (eq (get-buffer cscope-output-buffer-name) (current-buffer))
+    (error "(cscope-rerun-search-at-point) only makes sense from a *cscope* buffer"))
+
+  (when cscope-process
+    (error "A cscope search is still in progress -- only one at a time is allowed"))
+
+  (let* ((beg    (or
+                  (cscope-find-prev-separator-start 'cscope-history-separator (point))
+                  (point-min)))
+         (end    (or
+                  (cscope-find-next-separator-start 'cscope-history-separator (point))
+                  (point-max)))
+         (search (get-text-property beg 'cscope-stored-search))
+
+         ;; try to rerun the search in the same directory as before
+         (cscope-initial-directory (or cscope-initial-directory
+                                       (get-text-property beg 'cscope-directory)))
+         cscope-rerunning-search ;; this is bound here to tell cscope-call to not move the point
+         )
+    (delete-region beg end)
+    (goto-char beg)
+    (eval search)))
 
 (defun cscope-set-initial-directory (cs-id)
   "Set the cscope-initial-directory variable.  The
@@ -1895,202 +1926,196 @@ the current directory will be used."
 Magic text properties are added to allow the user to select lines
 using the mouse."
   (let ( (old-buffer (current-buffer)) )
-    (unwind-protect
-	(progn
-	  (set-buffer (process-buffer process))
-	  (let (line file function-name line-number moving)
-	    (setq moving (= (point) (process-mark process)))
-	    (save-excursion
-	      (goto-char (process-mark process))
-	      ;; Get the output thus far ...
-	      (if cscope-process-output
-		  (setq cscope-process-output (concat cscope-process-output
-						      output))
-		(setq cscope-process-output output))
-	      ;; Slice and dice it into lines.
-	      ;; While there are whole lines left ...
-	      (while (and cscope-process-output
-			  (string-match "\\([^\n]+\n\\)\\(\\(.\\|\n\\)*\\)"
-					cscope-process-output))
-		(setq file				nil
-		      glimpse-stripped-directory	nil
-		      )
-		;; Get a line
-		(setq line (substring cscope-process-output
-				      (match-beginning 1) (match-end 1)))
-		(setq cscope-process-output (substring cscope-process-output
-						       (match-beginning 2)
-						       (match-end 2)))
-		(if (= (length cscope-process-output) 0)
-		    (setq cscope-process-output nil))
+    (with-current-buffer (process-buffer process)
+      (let ((moving (= (point) (process-mark process)))
+            line file function-name line-number)
+        (save-excursion
+          (goto-char (process-mark process))
+          ;; Get the output thus far ...
+          (if cscope-process-output
+              (setq cscope-process-output (concat cscope-process-output
+                                                  output))
+            (setq cscope-process-output output))
+          ;; Slice and dice it into lines.
+          ;; While there are whole lines left ...
+          (while (and cscope-process-output
+                      (string-match "\\([^\n]+\n\\)\\(\\(.\\|\n\\)*\\)"
+                                    cscope-process-output))
+            (setq file				nil
+                  glimpse-stripped-directory	nil
+                  )
+            ;; Get a line
+            (setq line (substring cscope-process-output
+                                  (match-beginning 1) (match-end 1)))
+            (setq cscope-process-output (substring cscope-process-output
+                                                   (match-beginning 2)
+                                                   (match-end 2)))
+            (if (= (length cscope-process-output) 0)
+                (setq cscope-process-output nil))
 
-		;; This should always match.
-		(if (string-match
-		     "^\\([^ \t]+\\)[ \t]+\\([^ \t]+\\)[ \t]+\\([0-9]+\\)[ \t]+\\(.*\\)\n"
-		     line)
-		    (progn
-		      (let (str)
-			(setq file (substring line (match-beginning 1)
-					      (match-end 1))
-			      function-name (substring line (match-beginning 2)
-						       (match-end 2))
-			      line-number (substring line (match-beginning 3)
-						     (match-end 3))
-			      line (substring line (match-beginning 4)
-					      (match-end 4))
-			      )
-			;; If the current file is not the same as the previous
-			;; one ...
-			(if (not (and cscope-last-file
-				      (string= file cscope-last-file)))
-			    (progn
-			      ;; The current file is different.
+            ;; This should always match.
+            (if (string-match
+                 "^\\([^ \t]+\\)[ \t]+\\([^ \t]+\\)[ \t]+\\([0-9]+\\)[ \t]+\\(.*\\)\n"
+                 line)
+                (progn
+                  (let (str)
+                    (setq file (substring line (match-beginning 1)
+                                          (match-end 1))
+                          function-name (substring line (match-beginning 2)
+                                                   (match-end 2))
+                          line-number (substring line (match-beginning 3)
+                                                 (match-end 3))
+                          line (substring line (match-beginning 4)
+                                          (match-end 4))
+                          )
+                    ;; If the current file is not the same as the previous
+                    ;; one ...
+                    (if (not (and cscope-last-file
+                                  (string= file cscope-last-file)))
+                        (progn
+                          ;; The current file is different.
 
-			      ;; Insert a separating blank line if
-			      ;; necessary.
-			      (if cscope-last-file (insert "\n"))
-			      ;; Insert the file name
-			      (setq str (concat "*** " file ":"))
-			      (if cscope-use-face
-				  (put-text-property 0 (length str)
-						     'face 'cscope-file-face
-						     str))
-			      (cscope-insert-with-text-properties
-			       str
-			       (expand-file-name file)
-			       ;; Yes, -1 is intentional
-			       -1)
-			      (insert "\n")
-			      ))
+                          ;; Insert a separating blank line if
+                          ;; necessary.
+                          (if cscope-last-file (insert "\n"))
+                          ;; Insert the file name
+                          (setq str (concat "*** " file ":"))
+                          (if cscope-use-face
+                              (put-text-property 0 (length str)
+                                                 'face 'cscope-file-face
+                                                 str))
+                          (let ((file-separator-start (point)))
+                            (cscope-insert-with-text-properties
+                             str
+                             (expand-file-name file)
+                             ;; Yes, -1 is intentional
+                             -1)
+                            (insert "\n")
+                            (put-text-property file-separator-start (point) 'cscope-file-separator t))
+                          ))
 
-			(if cscope-first-match-point
-			    (setq cscope-matched-multiple t)
-                          (setq cscope-first-match-point (point)))
+                    (if cscope-first-match-point
+                        (setq cscope-matched-multiple t)
+                      (setq cscope-first-match-point (point)))
 
-			;; ... and insert the line, with the
-			;; appropriate indentation.
-			(put-text-property (1- (point)) (point) 'cscope-line-separator t)
-                        (cscope-insert-with-text-properties
-			 (cscope-make-entry-line function-name
-						 line-number
-						 line)
-			 (expand-file-name file)
-			 line-number
-                         line)
-			(insert "\n")
-			(setq cscope-last-file file)
-			))
-		  (insert line "\n")
-		  ))
-	      (set-marker (process-mark process) (point))
-	      )
-	    (if moving
-		(goto-char (process-mark process)))
-	    (set-buffer-modified-p nil)
-	    ))
-      (set-buffer old-buffer))
-    ))
+                    ;; ... and insert the line, with the
+                    ;; appropriate indentation.
+                    (put-text-property (1- (point)) (point) 'cscope-line-separator t)
+                    (cscope-insert-with-text-properties
+                     (cscope-make-entry-line function-name
+                                             line-number
+                                             line)
+                     (expand-file-name file)
+                     line-number
+                     line)
+                    (insert "\n")
+                    (setq cscope-last-file file)
+                    ))
+              (insert line "\n")
+              ))
+          (set-marker (process-mark process) (point))
+          )
+        (if moving
+            (goto-char (process-mark process)))
+        (set-buffer-modified-p nil)))))
 
 
 (defun cscope-process-sentinel (process event)
   "Sentinel for when the cscope process dies."
-  (let* ( (buffer (process-buffer process)) window update-window
-         (done t) (old-buffer (current-buffer))
+  (let* ((buffer (process-buffer process)) window update-window
+         (done t)
+         (old-buffer (current-buffer))
 	 (old-buffer-window (get-buffer-window old-buffer)) )
-    (set-buffer buffer)
-    (save-window-excursion
-      (save-excursion
-	(if (or (and (setq window (get-buffer-window buffer))
-		     (= (window-point window) (point-max)))
-		(= (point) (point-max)))
-	    (progn
-	      (setq update-window t)
-	      ))
-	(delete-process process)
-	(let (continue)
-	  (goto-char (point-max))
 
-	  (when (= cscope-output-start (point))
+    (with-current-buffer buffer
+      (let ((moving (= (point) (process-mark process)))
+            continue)
+        (save-excursion
+          (goto-char (process-mark process))
+
+          (if (or (and (setq window (get-buffer-window buffer))
+                       (= (window-point window) (point-max)))
+                  (= (point) (point-max)))
+              (setq update-window t))
+          (delete-process process)
+
+          (when (= cscope-output-start (point))
             (insert " --- No matches were found ---\n"))
           
           (when (not cscope-start-directory)
             (setq cscope-start-directory default-directory))
 
-	  (setq continue
-		(and cscope-search-list
-		     (not (and cscope-first-match-point
-			       cscope-stop-at-first-match-dir
-			       (not cscope-stop-at-first-match-dir-meta)))))
-	  (if continue
-	      (setq continue (cscope-search-one-database)))
-	  (if continue
-	      (progn
-		(setq done nil)
-		)
-	    (progn
-	      (insert "\nSearch complete.")
-	      (if cscope-display-times
-		  (let ( (times (current-time)) cscope-stop elapsed-time )
-		    (setq cscope-stop (+ (* (car times) 65536.0)
-					 (car (cdr times))
-					 (* (car (cdr (cdr times))) 1.0E-6)))
-		    (setq elapsed-time (- cscope-stop cscope-start-time))
-		    (insert (format "  Search time = %.2f seconds."
-				    elapsed-time))
-		    ))
-	      (setq cscope-process nil)
-	      (if cscope-running-in-xemacs
-		  (setq modeline-process ": Search complete"))
+          (setq continue
+                (and cscope-search-list
+                     (not (and cscope-first-match-point
+                               cscope-stop-at-first-match-dir
+                               (not cscope-stop-at-first-match-dir-meta)))))
+          (if continue
+              (setq continue (cscope-search-one-database)))
+          (if continue
+              (progn
+                (setq done nil)
+                )
+            (progn
+              (insert "\nSearch complete.")
+              (if cscope-display-times
+                  (let ( (times (current-time)) cscope-stop elapsed-time )
+                    (setq cscope-stop (+ (* (car times) 65536.0)
+                                         (car (cdr times))
+                                         (* (car (cdr (cdr times))) 1.0E-6)))
+                    (setq elapsed-time (- cscope-stop cscope-start-time))
+                    (insert (format "  Search time = %.2f seconds."
+                                    elapsed-time))
+                    ))
+              (insert "\n")
+              (setq cscope-process nil)
+              (if cscope-running-in-xemacs
+                  (setq modeline-process ": Search complete"))
 
               ;; save the directory of this search
-              (let ((search-start-point (cscope-find-prev-separator-end 'cscope-history-separator (point))))
+              (let ((search-start-point (or (cscope-find-prev-separator-start 'cscope-history-separator (point))
+                                            (point-min))))
                 (when search-start-point
                   (put-text-property search-start-point (point) 'cscope-directory default-directory)))
 
-	      (if cscope-start-directory
-		  (setq default-directory cscope-start-directory))
-	      )
-	    ))
-	(set-buffer-modified-p nil)
-	))
-    (if (and done cscope-first-match-point update-window)
-	(if window
-	    (set-window-point window cscope-first-match-point)
-	  (goto-char cscope-first-match-point))
-      )
-    (cond
-     ( (not done)		;; we're not done -- do nothing for now
-       (if update-window
-	   (if window
-	       (set-window-point window (point-max))
-	     (goto-char (point-max))))
-       )
-     ( cscope-first-match-point
-       (if cscope-display-cscope-buffer
-           (if (and cscope-edit-single-match (not cscope-matched-multiple))
-               (cscope-show-entry-internal
-                (cscope-get-navigation-properties cscope-first-match-point (process-buffer process))
-                t))
-         (cscope-select-entry-specified-window old-buffer-window))
-       )
-     )
+              (if cscope-start-directory
+                  (setq default-directory cscope-start-directory))
+              )
+            )
+          (set-buffer-modified-p nil))
 
-    ;; if the *cscope* buffer is too long, truncate it
-    (with-current-buffer (process-buffer process)
-      (when (and done
-                 (> cscope-max-cscope-buffer-size 0)
-                 (> (- (point-max) (point-min)) cscope-max-cscope-buffer-size))
+        (if (and done cscope-first-match-point update-window)
+            (if window
+                (set-window-point window cscope-first-match-point)
+              (goto-char cscope-first-match-point))
+          )
 
-        (let ((cut-at-point (cscope-find-prev-separator-start
-                             'cscope-history-separator
-                             (- (point-max) cscope-max-cscope-buffer-size))))
-          (when cut-at-point
-            (delete-region (point-min) cut-at-point)))))
+        (when cscope-first-match-point
+          (if cscope-display-cscope-buffer
+              (if (and cscope-edit-single-match (not cscope-matched-multiple))
+                  (cscope-show-entry-internal
+                   (cscope-get-navigation-properties cscope-first-match-point (process-buffer process))
+                   t))
+            (cscope-select-entry-specified-window old-buffer-window)))
 
-    (if (and done (eq old-buffer buffer) cscope-first-match-point)
-	(cscope-help))
-    (set-buffer old-buffer)
-    ))
+        ;; if the *cscope* buffer is too long, truncate it
+        (with-current-buffer (process-buffer process)
+          (when (and done
+                     (> cscope-max-cscope-buffer-size 0)
+                     (> (- (point-max) (point-min)) cscope-max-cscope-buffer-size))
+
+            (let ((cut-at-point (cscope-find-prev-separator-start
+                                 'cscope-history-separator
+                                 (- (point-max) cscope-max-cscope-buffer-size))))
+              (when cut-at-point
+                (delete-region (point-min) cut-at-point)))))
+
+        (if (and done (eq old-buffer buffer) cscope-first-match-point)
+            (cscope-help))
+
+        (if moving
+            (goto-char (process-mark process)))))))
+
 
 
 (defun cscope-search-one-database ()
@@ -2162,7 +2187,10 @@ using the mouse."
 		cscope-do-not-update-database)
 	    (setq options (cons "-d" options)))
 
-	(goto-char (point-max))
+
+;; is this require for multiple databases?
+	;; (goto-char (point-max))
+
 	(if (string= base-database-file-name cscope-database-file)
 	    (insert "\nDatabase directory: " cscope-directory "\n\n")
 	  (insert "\nDatabase directory/file: "
@@ -2190,7 +2218,7 @@ using the mouse."
     ))
 
 
-(defun cscope-call (basemsg search-id symbol)
+(defun cscope-call (basemsg search-id symbol search)
   "Generic function to call to process cscope requests.
 BASEMSG is a message describing this search; SEARCH-ID is a
 numeric id indicating to the cscope backend what kind of search
@@ -2243,7 +2271,7 @@ this is."
       (setq truncate-lines cscope-truncate-lines)
 
       ;; insert the separator at the start of the result set
-      (goto-char (point-max))
+      (unless (boundp 'cscope-rerunning-search) (goto-char (point-max)))
       (when (not (bolp))
         (insert "\n"))
 
@@ -2251,7 +2279,8 @@ this is."
       (let ((separator-start (point)))
         (insert cscope-separator-text)
         (when cscope-use-face
-          (put-text-property separator-start (1- (point)) 'face 'cscope-separator-face)))
+          (put-text-property separator-start (1- (point)) 'face 'cscope-separator-face)
+          (put-text-property separator-start (1- (point)) 'cscope-stored-search search)))
 
       (insert msg)
       (cscope-search-one-database)
@@ -2261,7 +2290,6 @@ this is."
 	  (pop-to-buffer outbuf)
 	  (cscope-help))
       (set-buffer outbuf))
-    (goto-char (point-max))
     (cscope-list-entry-mode)
     ))
 
@@ -2513,7 +2541,7 @@ file."
 		(cscope-prompt-for-symbol "Find this symbol: " nil nil)
 		))
   (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
-  (cscope-call "Finding symbol:" 0 symbol)
+  (cscope-call "Finding symbol:" 0 symbol `(cscope-find-this-symbol ,symbol))
   )
 
 
@@ -2523,7 +2551,7 @@ file."
 		(cscope-prompt-for-symbol "Find this global definition: " nil nil)
 		))
   (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
-  (cscope-call "Finding global definition:" 1 symbol)
+  (cscope-call "Finding global definition:" 1 symbol `(cscope-find-global-definition ,symbol))
   )
 
 
@@ -2532,7 +2560,7 @@ file."
   (interactive)
   (let ( (symbol (cscope-extract-symbol-at-cursor nil nil)))
     (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
-    (cscope-call "Finding global definition:" 1 symbol)
+    (cscope-call "Finding global definition:" 1 symbol `(cscope-find-global-definition-no-prompting ,symbol))
     ))
 
 
@@ -2543,7 +2571,7 @@ file."
 		 "Find functions called by this function: " nil nil)
 		))
   (setq cscope-last-user-search nil)  ;; Fuzzy match with the cscope results
-  (cscope-call "Finding functions called by:" 2 symbol)
+  (cscope-call "Finding functions called by:" 2 symbol `(cscope-find-called-functions ,symbol))
   )
 
 
@@ -2554,7 +2582,7 @@ file."
 		 "Find functions calling this function: " nil nil)
 		))
   (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
-  (cscope-call "Finding functions calling:" 3 symbol)
+  (cscope-call "Finding functions calling:" 3 symbol `(cscope-find-functions-calling-this-function ,symbol))
   )
 
 
@@ -2564,7 +2592,7 @@ file."
 		(cscope-prompt-for-symbol "Find this text string: " nil t)
 		))
   (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
-  (cscope-call "Finding text string:" 4 symbol)
+  (cscope-call "Finding text string:" 4 symbol `(cscope-find-this-text-string ,symbol))
   )
 
 
@@ -2575,7 +2603,7 @@ file."
 		  (cscope-prompt-for-symbol "Find this egrep pattern: " nil t))
 		))
   (setq cscope-last-user-search nil)  ;; Fuzzy match with the cscope results
-  (cscope-call "Finding egrep pattern:" 6 symbol)
+  (cscope-call "Finding egrep pattern:" 6 symbol `(cscope-find-egrep-pattern ,symbol))
   )
 
 
@@ -2590,7 +2618,7 @@ file."
   ;; however since cscope will not return any particular text here; it will by
   ;; "<unknown>"
   (setq cscope-last-user-search nil)
-  (cscope-call "Finding file:" 7 symbol)
+  (cscope-call "Finding file:" 7 symbol `(cscope-find-this-file ,symbol))
   )
 
 
@@ -2602,7 +2630,7 @@ file."
 		   "Find files #including this file: " t nil))
 		))
   (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
-  (cscope-call "Finding files #including file:" 8 symbol)
+  (cscope-call "Finding files #including file:" 8 symbol `(cscope-find-files-including-file ,symbol))
   )
 
 
@@ -2612,7 +2640,7 @@ file."
 		(cscope-prompt-for-symbol "Find assignments to this symbol: " nil nil)
 		))
   (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
-  (cscope-call "Finding assignments to symbol:" 9 symbol)
+  (cscope-call "Finding assignments to symbol:" 9 symbol `(cscope-find-assignments-to-this-symbol ,symbol))
   )
 
 
