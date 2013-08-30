@@ -1484,6 +1484,23 @@ Returns the window displaying BUFFER."
         (cscope-prev-separator-boundary separator-type at)
       at)))
 
+(defun cscope-get-history-bounds-this-result (&optional separator-type)
+  "Returns a vector of the beginning and the end of the cscope
+results at (point)."
+
+  ;; This is straightforward except I handle the special case at the start of a
+  ;; separator line. In this location (cscope-find-prev-separator-start) finds
+  ;; the PREVIOUS separator start, not the one the point is sitting on
+  (let* ((separator-type (or separator-type 'cscope-history-separator))
+         (beg (or (and (bolp)
+                       (cscope-at-separator-p separator-type (point))
+                       (point))
+                  (cscope-find-prev-separator-start separator-type (point))
+                  (point-min)))
+         (end (or (cscope-find-next-separator-start separator-type beg)
+                  (point-max))))
+    (vector beg end)))
+
 (defun cscope-get-navigation-properties (&optional at buffer)
   "Reads the cscope navigation properties on this line. The
 properties themselves are read from the beginning of the line,
@@ -1663,12 +1680,10 @@ and 'cscope-history-forward-line'/'cscope-history-backward-line'"
 
 (defun cscope-history-kill (separator-type)
   "Delete a cscope set of results/file result/line from the *cscope* buffer."
-  (let* ((beg (or (cscope-find-prev-separator-start separator-type (point))
-                  (point-min)))
-         (end (or (cscope-find-next-separator-start separator-type beg)
-                  (point-max))))
-
-      (delete-region beg end)))
+  (let ((beg-end (cscope-get-history-bounds-this-result separator-type)))
+    (delete-region
+     (elt beg-end 0)
+     (elt beg-end 1))))
 
 (defun cscope-history-forward-result ()
   "Navigate to the next stored search results in the *cscope*
@@ -1763,12 +1778,9 @@ modified in-place"
   (when cscope-process
     (error "A cscope search is still in progress -- only one at a time is allowed"))
 
-  (let* ((beg    (or
-                  (cscope-find-prev-separator-start 'cscope-history-separator (point))
-                  (point-min)))
-         (end    (or
-                  (cscope-find-next-separator-start 'cscope-history-separator (point))
-                  (point-max)))
+  (let* ((beg-end (cscope-get-history-bounds-this-result))
+         (beg (elt beg-end 0))
+         (end (elt beg-end 1))
          (search (get-text-property beg 'cscope-stored-search))
 
          ;; try to rerun the search in the same directory as before
@@ -2116,11 +2128,13 @@ using the mouse."
                      (> cscope-max-cscope-buffer-size 0)
                      (> (- (point-max) (point-min)) cscope-max-cscope-buffer-size))
 
-            (let ((cut-at-point (cscope-find-prev-separator-start
-                                 'cscope-history-separator
-                                 (- (point-max) cscope-max-cscope-buffer-size))))
-              (when cut-at-point
-                (delete-region (point-min) cut-at-point)))))
+            (save-excursion
+              (goto-char (point-max))
+              (let ((cut-at-point (cscope-find-prev-separator-start
+                                   'cscope-history-separator
+                                   (- (point-max) cscope-max-cscope-buffer-size))))
+                (when cut-at-point
+                  (delete-region (point-min) cut-at-point))))))
 
         (if (and done (eq old-buffer buffer) cscope-first-match-point)
             (cscope-help))
@@ -2241,10 +2255,10 @@ this is."
            (cscope-canonicalize-directory
 
             ;; if we have an initial directory, use it. Otherwise if we're in
-            ;; *cscope*, trye to use the directory of the search at point
+            ;; *cscope*, try to use the directory of the search at point
             (or cscope-initial-directory
                 (and (eq outbuf old-buffer)
-                     (let ((query-point (cscope-find-prev-separator-end 'cscope-history-separator (point))))
+                     (let ((query-point (elt (cscope-get-history-bounds-this-result) 0)))
                        (if query-point
                            (get-text-property query-point 'cscope-directory)
                          nil))))))
