@@ -1436,6 +1436,18 @@ Returns the window displaying BUFFER."
   "Shorthand used for the separator navigation routines"
   (get-text-property at separator-type))
 
+;; These are the core of the basic navigation functions. These find the
+;; beginning/end of adjacent separators. There are some edge-case questions
+;; about what these functions should do. For history navigation, the behavior is
+;; the following (bol = beginning of line, eol = end of line, sep = separator):
+;; 
+;; |                                  | at sep bol            | at sep eol            | at sep nextline bol   |
+;; |----------------------------------+-----------------------+-----------------------+-----------------------|
+;; | cscope-find-next-separator-end   | this sep nextline bol | this sep nextline bol | next sep nextline bol |
+;; | cscope-find-next-separator-start | next sep bol          | next sep bol          | next sep bol          |
+;; | cscope-find-prev-separator-end   | prev sep nextline bol | prev sep nextline bol | prev sep nextline bol |
+;; | cscope-find-prev-separator-start | prev sep bol          | this sep bol          | this sep bol          |
+
 (defun cscope-find-next-separator-end (separator-type at)
   "Finds the next end of the history separator after 'at'"
 
