@@ -2074,38 +2074,33 @@ using the mouse."
                      (not (and cscope-first-match-point
                                cscope-stop-at-first-match-dir
                                (not cscope-stop-at-first-match-dir-meta)))))
+          (when continue
+            (setq continue (cscope-search-one-database)))
           (if continue
-              (setq continue (cscope-search-one-database)))
-          (if continue
-              (progn
-                (setq done nil)
-                )
-            (progn
-              (insert "\nSearch complete.")
-              (if cscope-display-times
-                  (let ( (times (current-time)) cscope-stop elapsed-time )
-                    (setq cscope-stop (+ (* (car times) 65536.0)
-                                         (car (cdr times))
-                                         (* (car (cdr (cdr times))) 1.0E-6)))
-                    (setq elapsed-time (- cscope-stop cscope-start-time))
-                    (insert (format "  Search time = %.2f seconds."
-                                    elapsed-time))
-                    ))
-              (insert "\n")
-              (setq cscope-process nil)
-              (if cscope-running-in-xemacs
-                  (setq modeline-process ": Search complete"))
+              (setq done nil)
+            (insert "\nSearch complete.")
+            (if cscope-display-times
+                (let ( (times (current-time)) cscope-stop elapsed-time )
+                  (setq cscope-stop (+ (* (car times) 65536.0)
+                                       (car (cdr times))
+                                       (* (car (cdr (cdr times))) 1.0E-6)))
+                  (setq elapsed-time (- cscope-stop cscope-start-time))
+                  (insert (format "  Search time = %.2f seconds."
+                                  elapsed-time))
+                  ))
+            (insert "\n")
+            (setq cscope-process nil)
+            (if cscope-running-in-xemacs
+                (setq modeline-process ": Search complete"))
 
-              ;; save the directory of this search
-              (let ((search-start-point (or (cscope-find-prev-separator-start 'cscope-history-separator (point))
-                                            (point-min))))
-                (when search-start-point
-                  (put-text-property search-start-point (point) 'cscope-directory default-directory)))
+            ;; save the directory of this search
+            (let ((search-start-point (or (cscope-find-prev-separator-start 'cscope-history-separator (point))
+                                          (point-min))))
+              (when search-start-point
+                (put-text-property search-start-point (point) 'cscope-directory default-directory)))
 
-              (if cscope-start-directory
-                  (setq default-directory cscope-start-directory))
-              )
-            )
+            (if cscope-start-directory
+                (setq default-directory cscope-start-directory)))
           (set-buffer-modified-p nil))
 
         (if (and done cscope-first-match-point update-window)
