@@ -836,12 +836,14 @@ be removed by quitting the cscope buffer."
 
 
 (defconst cscope-separator-text
-  (propertize
-   "===============================================================================\n"
-   'cscope-history-separator t)
+  "===============================================================================\n"
   "Line of text to use as a visual separator.
-Must end with a newline.")
+Must end with a newline. Must work as a regex without quoting")
 
+(defconst cscope-file-separator-regex
+  "\\*\\*\\* .*:\n"
+  "Regex to match a file separator. This has to match the '***'
+that xcscope.el normally outputs")
 
 ;;;;
 ;;;; Faces for fontification
@@ -1424,82 +1426,58 @@ Returns the window displaying BUFFER."
     )
   window)
 
-(defun cscope-next-separator-boundary (separator-type at)
-  "Shorthand used for the separator navigation routines"
-  (next-single-property-change at separator-type))
+(defun cscope-find-this-separator-start (separator-regex from &optional strict)
+  "Finds the start of the given separator before FROM.
+If FROM is anywhere in a separator string, this separator is
+used. If STRICT is non-nil this function returns nil if no
+separator is found. Otherwise '(point-min)' is returned"
 
-(defun cscope-prev-separator-boundary (separator-type at)
-  "Shorthand used for the separator navigation routines"
-  (previous-single-property-change at separator-type))
+  (let ((separator-regex-at-bol (concat "^" separator-regex)))
+    (save-excursion
+      (goto-char from)
+      (beginning-of-line)
 
-(defun cscope-at-separator-p (separator-type at)
-  "Shorthand used for the separator navigation routines"
-  (get-text-property at separator-type))
+      ;; if we're at the separator, use it
+      (if (looking-at separator-regex) (point)
 
-;; These are the core of the basic navigation functions. These find the
-;; beginning/end of adjacent separators. There are some edge-case questions
-;; about what these functions should do. For history navigation, the behavior is
-;; the following (bol = beginning of line, eol = end of line, sep = separator):
-;; 
-;; |                                  | at sep bol            | at sep eol            | at sep nextline bol   |
-;; |----------------------------------+-----------------------+-----------------------+-----------------------|
-;; | cscope-find-next-separator-end   | this sep nextline bol | this sep nextline bol | next sep nextline bol |
-;; | cscope-find-next-separator-start | next sep bol          | next sep bol          | next sep bol          |
-;; | cscope-find-prev-separator-end   | prev sep nextline bol | prev sep nextline bol | prev sep nextline bol |
-;; | cscope-find-prev-separator-start | prev sep bol          | this sep bol          | this sep bol          |
+        ;; otherwise, find the previous separator
+        (or
+         (re-search-backward separator-regex-at-bol nil t nil)
 
-(defun cscope-find-next-separator-end (separator-type at)
-  "Finds the next end of the history separator after 'at'"
+         ;; if there isn't one, use the start of the buffer
+         (if strict nil (point-min)))))))
 
-  (when (and at
-             (setq at (cscope-next-separator-boundary separator-type at)))
-    (if (cscope-at-separator-p separator-type at)
-        (cscope-next-separator-boundary separator-type at)
-      at)))
+(defun cscope-find-next-separator-start (separator-regex from &optional strict)
+  "Finds the next start of the given separator after FROM.
+If FROM is anywhere in a separator string, the next separator is
+used. If STRICT is non-nil this function returns nil if no
+separator is found. Otherwise '(point-min)' is returned"
 
-(defun cscope-find-next-separator-start (separator-type at)
-  "Finds the next start of the history separator after 'at'"
+  (let ((separator-regex-at-bol (concat "^" separator-regex)))
+    (save-excursion
+      (goto-char from)
 
-  (when (and at
-             (setq at (cscope-next-separator-boundary separator-type at)))
-    (if (not (cscope-at-separator-p separator-type at))
-        (cscope-next-separator-boundary separator-type at)
-      at)))
+      ;; try to find the next separator (start a bit forward to not find
+      ;; the current one).
+      (if (progn (forward-char)
+                 (re-search-forward separator-regex-at-bol nil t nil))
 
-(defun cscope-find-prev-separator-end (separator-type at)
-  "Finds the previous end of the history separator before 'at'"
+          ;; if there is a next one, navigate to its start, and use it
+          (progn
+            (previous-line)
+            (beginning-of-line)
+            (point))
 
-  (when (and at
-             (setq at (cscope-prev-separator-boundary separator-type at)))
-    (if (cscope-at-separator-p separator-type at)
-        (cscope-prev-separator-boundary separator-type at)
-      at)))
+        ;; otherwise, use the end of the buffer
+        (if strict nil (point-max))))))
 
-(defun cscope-find-prev-separator-start (separator-type at)
-  "Finds the previous start of the history separator before 'at'"
-
-  (when (and at
-             (setq at (cscope-prev-separator-boundary separator-type at)))
-    (if (not (cscope-at-separator-p separator-type at))
-        (cscope-prev-separator-boundary separator-type at)
-      at)))
-
-(defun cscope-get-history-bounds-this-result (&optional separator-type)
+(defun cscope-get-history-bounds-this-result (separator-regex)
   "Returns a vector of the beginning and the end of the cscope
 results at (point)."
 
-  ;; This is straightforward except I handle the special case at the start of a
-  ;; separator line. In this location (cscope-find-prev-separator-start) finds
-  ;; the PREVIOUS separator start, not the one the point is sitting on
-  (let* ((separator-type (or separator-type 'cscope-history-separator))
-         (beg (or (and (bolp)
-                       (cscope-at-separator-p separator-type (point))
-                       (point))
-                  (cscope-find-prev-separator-start separator-type (point))
-                  (point-min)))
-         (end (or (cscope-find-next-separator-start separator-type beg)
-                  (point-max))))
-    (vector beg end)))
+  (let* ((beg (cscope-find-this-separator-start separator-regex (point)))
+         (end (cscope-find-next-separator-start separator-regex beg)))
+    (list beg end)))
 
 (defun cscope-get-navigation-properties (&optional at buffer)
   "Reads the cscope navigation properties on this line. The
@@ -1667,55 +1645,51 @@ Point is not saved on mark ring."
   (interactive)
   (cscope-buffer-search nil nil))
 
-(defun cscope-history-forward-backward (separator-type do-next)
+(defun cscope-history-forward-backward (separator-regex do-next)
   "Body for 'cscope-history-forward-result'/'cscope-history-backward-result'
-and 'cscope-history-forward-file'/'cscope-history-backward-file'
-and 'cscope-history-forward-line'/'cscope-history-backward-line'"
-  (goto-char
-   (cond
-    (do-next (or (cscope-find-next-separator-end separator-type (point))
-                 (error "The end of the *cscope* buffer has been reached")))
-    (t       (or (cscope-find-prev-separator-end separator-type (point))
-                 (error "The beginning of the *cscope* buffer has been reached"))))))
+and 'cscope-history-forward-file'/'cscope-history-backward-file'"
+  (let ((target-point
+         (cond
+          (do-next (cscope-find-next-separator-start separator-regex (point) t))
+          (t       (cscope-find-this-separator-start separator-regex
+                                                     (- (point) (if (looking-at separator-regex) 1 0)) t)))))
+    (when target-point (goto-char target-point))))
 
-(defun cscope-history-kill (separator-type)
+(defun cscope-history-kill (separator-regex)
   "Delete a cscope set of results/file result/line from the *cscope* buffer."
-  (let ((beg-end (cscope-get-history-bounds-this-result separator-type)))
-    (delete-region
-     (elt beg-end 0)
-     (elt beg-end 1))))
+  (apply 'delete-region (cscope-get-history-bounds-this-result separator-regex)))
 
 (defun cscope-history-forward-result ()
   "Navigate to the next stored search results in the *cscope*
 buffer."
   (interactive)
-  (cscope-history-forward-backward 'cscope-history-separator t))
+  (cscope-history-forward-backward cscope-separator-text t))
 
 (defun cscope-history-backward-result ()
   "Navigate to the previous stored search results in the *cscope*
 buffer."
   (interactive)
-  (cscope-history-forward-backward 'cscope-history-separator nil))
+  (cscope-history-forward-backward cscope-separator-text nil))
 
 (defun cscope-history-kill-result ()
   "Delete a cscope result from the *cscope* buffer."
   (interactive)
-  (cscope-history-kill 'cscope-history-separator))
+  (cscope-history-kill cscope-separator-text))
 
 (defun cscope-history-forward-file ()
   "Navigate to the next file results in the *cscope* buffer."
   (interactive)
-  (cscope-history-forward-backward 'cscope-file-separator t))
+  (cscope-history-forward-backward cscope-file-separator-regex t))
 
 (defun cscope-history-backward-file ()
   "Navigate to the previous file results in the *cscope* buffer."
   (interactive)
-  (cscope-history-forward-backward 'cscope-file-separator nil))
+  (cscope-history-forward-backward cscope-file-separator-regex nil))
 
 (defun cscope-history-kill-file ()
   "Delete a cscope file set from the *cscope* buffer."
   (interactive)
-  (cscope-history-kill 'cscope-file-separator))
+  (cscope-history-kill cscope-file-separator-regex))
 
 (defun cscope-history-forward-line ()
   "Navigate to the next result line in the *cscope* buffer."
@@ -1778,7 +1752,7 @@ modified in-place"
   (when cscope-process
     (error "A cscope search is still in progress -- only one at a time is allowed"))
 
-  (let* ((beg-end (cscope-get-history-bounds-this-result))
+  (let* ((beg-end (cscope-get-history-bounds-this-result cscope-separator-text))
          (beg (elt beg-end 0))
          (end (elt beg-end 1))
          (search (get-text-property beg 'cscope-stored-search))
@@ -2008,15 +1982,12 @@ using the mouse."
                               (put-text-property 0 (length str)
                                                  'face 'cscope-file-face
                                                  str))
-                          (let ((file-separator-start (point)))
-                            (cscope-insert-with-text-properties
-                             str
-                             (expand-file-name file)
-                             ;; Yes, -1 is intentional
-                             -1)
-                            (insert "\n")
-                            (put-text-property file-separator-start (point) 'cscope-file-separator t))
-                          ))
+                          (cscope-insert-with-text-properties
+                           str
+                           (expand-file-name file)
+                           ;; Yes, -1 is intentional
+                           -1)
+                          (insert "\n")))
 
                     (if cscope-first-match-point
                         (setq cscope-matched-multiple t)
@@ -2024,7 +1995,6 @@ using the mouse."
 
                     ;; ... and insert the line, with the
                     ;; appropriate indentation.
-                    (put-text-property (1- (point)) (point) 'cscope-line-separator t)
                     (cscope-insert-with-text-properties
                      (cscope-make-entry-line function-name
                                              line-number
@@ -2094,10 +2064,8 @@ using the mouse."
                 (setq modeline-process ": Search complete"))
 
             ;; save the directory of this search
-            (let ((search-start-point (or (cscope-find-prev-separator-start 'cscope-history-separator (point))
-                                          (point-min))))
-              (when search-start-point
-                (put-text-property search-start-point (point) 'cscope-directory default-directory)))
+            (let ((search-start-point (cscope-find-this-separator-start cscope-separator-text (point))))
+              (put-text-property search-start-point (point) 'cscope-directory default-directory))
 
             (if cscope-start-directory
                 (setq default-directory cscope-start-directory)))
@@ -2125,9 +2093,10 @@ using the mouse."
 
             (save-excursion
               (goto-char (point-max))
-              (let ((cut-at-point (cscope-find-prev-separator-start
-                                   'cscope-history-separator
-                                   (- (point-max) cscope-max-cscope-buffer-size))))
+              (let ((cut-at-point (cscope-find-this-separator-start
+                                   cscope-separator-text
+                                   (- (point-max) cscope-max-cscope-buffer-size)
+                                   t)))
                 (when cut-at-point
                   (delete-region (point-min) cut-at-point))))))
 
@@ -2253,10 +2222,9 @@ this is."
             ;; *cscope*, try to use the directory of the search at point
             (or cscope-initial-directory
                 (and (eq outbuf old-buffer)
-                     (let ((query-point (elt (cscope-get-history-bounds-this-result) 0)))
-                       (if query-point
-                           (get-text-property query-point 'cscope-directory)
-                         nil))))))
+                     (let ((query-point
+                            (cscope-find-this-separator-start cscope-separator-text (point))))
+                       (get-text-property query-point 'cscope-directory))))))
           (msg (concat basemsg " " symbol))
           (args (list (format "-%d" search-id) symbol)))
     (if cscope-process
