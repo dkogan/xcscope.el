@@ -835,7 +835,7 @@ be removed by quitting the cscope buffer."
   "List of hooks to call when entering cscope-minor-mode.")
 
 
-(defconst cscope-separator-text
+(defconst cscope-result-separator
   "===============================================================================\n"
   "Line of text to use as a visual separator.
 Must end with a newline. Must work as a regex without quoting")
@@ -1663,18 +1663,18 @@ and 'cscope-history-forward-file'/'cscope-history-backward-file'"
   "Navigate to the next stored search results in the *cscope*
 buffer."
   (interactive)
-  (cscope-history-forward-backward cscope-separator-text t))
+  (cscope-history-forward-backward cscope-result-separator t))
 
 (defun cscope-history-backward-result ()
   "Navigate to the previous stored search results in the *cscope*
 buffer."
   (interactive)
-  (cscope-history-forward-backward cscope-separator-text nil))
+  (cscope-history-forward-backward cscope-result-separator nil))
 
 (defun cscope-history-kill-result ()
   "Delete a cscope result from the *cscope* buffer."
   (interactive)
-  (cscope-history-kill cscope-separator-text))
+  (cscope-history-kill cscope-result-separator))
 
 (defun cscope-history-forward-file ()
   "Navigate to the next file results in the *cscope* buffer."
@@ -1752,7 +1752,7 @@ modified in-place"
   (when cscope-process
     (error "A cscope search is still in progress -- only one at a time is allowed"))
 
-  (let* ((beg-end (cscope-get-history-bounds-this-result cscope-separator-text))
+  (let* ((beg-end (cscope-get-history-bounds-this-result cscope-result-separator))
          (beg (elt beg-end 0))
          (end (elt beg-end 1))
          (search (get-text-property beg 'cscope-stored-search))
@@ -2064,7 +2064,7 @@ using the mouse."
                 (setq modeline-process ": Search complete"))
 
             ;; save the directory of this search
-            (let ((search-start-point (cscope-find-this-separator-start cscope-separator-text (point))))
+            (let ((search-start-point (cscope-find-this-separator-start cscope-result-separator (point))))
               (put-text-property search-start-point (point) 'cscope-directory default-directory))
 
             (if cscope-start-directory
@@ -2094,7 +2094,7 @@ using the mouse."
             (save-excursion
               (goto-char (point-max))
               (let ((cut-at-point (cscope-find-this-separator-start
-                                   cscope-separator-text
+                                   cscope-result-separator
                                    (- (point-max) cscope-max-cscope-buffer-size)
                                    t)))
                 (when cut-at-point
@@ -2223,7 +2223,7 @@ this is."
             (or cscope-initial-directory
                 (and (eq outbuf old-buffer)
                      (let ((query-point
-                            (cscope-find-this-separator-start cscope-separator-text (point))))
+                            (cscope-find-this-separator-start cscope-result-separator (point))))
                        (get-text-property query-point 'cscope-directory))))))
           (msg (concat basemsg " " symbol))
           (args (list (format "-%d" search-id) symbol)))
@@ -2266,7 +2266,7 @@ this is."
 
       ;; don't apply the face to the trailing newline in the separator
       (let ((separator-start (point)))
-        (insert cscope-separator-text)
+        (insert cscope-result-separator)
         (when cscope-use-face
           (put-text-property separator-start (1- (point)) 'face 'cscope-separator-face)
           (put-text-property separator-start (1- (point)) 'cscope-stored-search search)))
@@ -2307,7 +2307,7 @@ this is."
   "Simple sentinel to print a message saying that indexing is finished."
   (setq cscope-indexing-status-string
         (concat cscope-indexing-status-string
-                cscope-separator-text
+                cscope-result-separator
                 "\n"
                 (if (equal event "finished\n")
                     "Indexing finished\n"
@@ -2358,7 +2358,7 @@ subdirectories are indexed."
     (cscope-unix-index-files-internal
      top-directory
      (format "Creating cscope index `%s' in:\n\t%s\n\n%s"
-	     cscope-database-file top-directory cscope-separator-text)
+	     cscope-database-file top-directory cscope-result-separator)
      nil)
     ))
 
