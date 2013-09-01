@@ -1727,17 +1727,32 @@ buffer."
 (defun cscope-history-forward-line ()
   "Navigate to the next result line in the *cscope* buffer."
   (interactive)
-  (cscope-history-forward-backward 'cscope-line-separator t))
+
+  (let ((target
+         (let ((at (save-excursion
+                     (end-of-line)
+                     (point))))
+           (next-single-property-change at 'cscope-line-number))))
+    (when target (goto-char target))))
 
 (defun cscope-history-backward-line ()
   "Navigate to the previous result line in the *cscope* buffer."
   (interactive)
-  (cscope-history-forward-backward 'cscope-line-separator nil))
+
+  (let ((target
+         (let ((at (save-excursion
+                     (beginning-of-line)
+                     (previous-single-property-change (point) 'cscope-line-number))))
+           (previous-single-property-change at 'cscope-line-number))))
+    (when target (goto-char target))))
 
 (defun cscope-history-kill-line ()
   "Delete a cscope line from the *cscope* buffer."
   (interactive)
-  (cscope-history-kill 'cscope-line-separator))
+  (save-excursion
+    (beginning-of-line)
+    (when (get-text-property (point) 'cscope-line-number)
+      (delete-region (point) (progn (forward-line 1) (point))))))
 
 (defun cscope-pop-mark ()
   "Pop back to where cscope was last invoked."
@@ -2017,9 +2032,7 @@ using the mouse."
                                                  str))
                           (cscope-insert-with-text-properties
                            str
-                           (expand-file-name file)
-                           ;; Yes, -1 is intentional
-                           -1)
+                           (expand-file-name file))
                           (insert "\n")))
 
                     (if cscope-first-match-point
