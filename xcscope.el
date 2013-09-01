@@ -840,10 +840,18 @@ be removed by quitting the cscope buffer."
   "Line of text to use as a visual separator.
 Must end with a newline. Must work as a regex without quoting")
 
-(defconst cscope-file-separator-regex
+(defconst cscope-file-separator-start-regex
   "\\*\\*\\* .*:\n"
-  "Regex to match a file separator. This has to match the '***'
-that xcscope.el normally outputs")
+  "Regex to match a file-start separator. This has to match the
+'***' that xcscope.el normally outputs. This is assumed to appear
+at the start of a line, so the leading ^ must be omitted")
+
+(defconst cscope-file-separator-end-regex
+  "\n"
+  "Regex to match a file-end separator. This is just an empty
+  line, and this has to match what xcscope.el normally outputs in
+  its 'cscope-process-filter'. This is assumed to appear at the
+  start of a line, so the leading ^ must be omitted")
 
 ;;;;
 ;;;; Faces for fontification
@@ -1471,13 +1479,26 @@ separator is found. Otherwise '(point-min)' is returned"
         ;; otherwise, use the end of the buffer
         (if strict nil (point-max))))))
 
-(defun cscope-get-history-bounds-this-result (separator-regex)
-  "Returns a vector of the beginning and the end of the cscope
-results at (point)."
+(defun cscope-get-history-bounds-this-result (start-regex &optional end-regex)
+  "Returns a list of the beginning and the end of the results
+at (point). If END-REGEX is nil, the START-REGEX is used for both
+the start and end bounds; the region then contains the start
+separator, but not the end separator. If END-REGEX is non-nil, it
+is used to find the end bound, and the region then contains both
+separators"
 
-  (let* ((beg (cscope-find-this-separator-start separator-regex (point)))
-         (end (cscope-find-next-separator-start separator-regex beg)))
-    (list beg end)))
+  (let ((beg (cscope-find-this-separator-start start-regex (point))))
+
+    (if end-regex
+        ;; we have an end regex
+        (save-excursion
+          (goto-char beg)
+          (let ((end (re-search-forward (concat "^" end-regex) nil t nil)))
+            (if end (list beg end) nil)))
+
+      ;; no end regex given. use the start regex
+      (let ((end (cscope-find-next-separator-start start-regex beg)))
+        (list beg end)))))
 
 (defun cscope-get-navigation-properties (&optional at buffer)
   "Reads the cscope navigation properties on this line. The
@@ -1655,10 +1676,6 @@ and 'cscope-history-forward-file'/'cscope-history-backward-file'"
                                                      (- (point) (if (looking-at separator-regex) 1 0)) t)))))
     (when target-point (goto-char target-point))))
 
-(defun cscope-history-kill (separator-regex)
-  "Delete a cscope set of results/file result/line from the *cscope* buffer."
-  (apply 'delete-region (cscope-get-history-bounds-this-result separator-regex)))
-
 (defun cscope-history-forward-result ()
   "Navigate to the next stored search results in the *cscope*
 buffer."
@@ -1674,22 +1691,38 @@ buffer."
 (defun cscope-history-kill-result ()
   "Delete a cscope result from the *cscope* buffer."
   (interactive)
-  (cscope-history-kill cscope-result-separator))
+  (apply 'delete-region (cscope-get-history-bounds-this-result cscope-result-separator)))
 
 (defun cscope-history-forward-file ()
   "Navigate to the next file results in the *cscope* buffer."
   (interactive)
-  (cscope-history-forward-backward cscope-file-separator-regex t))
+  (cscope-history-forward-backward cscope-file-separator-start-regex t))
 
 (defun cscope-history-backward-file ()
   "Navigate to the previous file results in the *cscope* buffer."
   (interactive)
-  (cscope-history-forward-backward cscope-file-separator-regex nil))
+  (cscope-history-forward-backward cscope-file-separator-start-regex nil))
 
 (defun cscope-history-kill-file ()
   "Delete a cscope file set from the *cscope* buffer."
   (interactive)
-  (cscope-history-kill cscope-file-separator-regex))
+  (let ((beg-end (cscope-get-history-bounds-this-result cscope-file-separator-start-regex
+                                                        cscope-file-separator-end-regex)))
+    ;; I now have bounds for a candidate file region. If non-nil, this
+    ;; includes the start/end separators. I make sure this region is valid and
+    ;; if so, kill it
+    (when (and beg-end (< (point) (cadr beg-end)))
+      (save-restriction
+        (save-excursion
+          (apply 'narrow-to-region beg-end)
+
+          ;; I'm restricted to my region. This region is valid ONLY if its
+          ;; interior has no other file start separator or history separator
+          (goto-char (1+ (point-min)))
+          (unless (or (re-search-forward (concat "^" cscope-result-separator)           nil t)
+                      (re-search-forward (concat "^" cscope-file-separator-start-regex) nil t))
+
+            (apply 'delete-region beg-end)))))))
 
 (defun cscope-history-forward-line ()
   "Navigate to the next result line in the *cscope* buffer."
