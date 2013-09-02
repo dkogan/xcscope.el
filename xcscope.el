@@ -959,21 +959,18 @@ at the start of a line, so the leading ^ must be omitted")
   (define-key cscope-list-entry-keymap "f" 'cscope-find-this-file)
   (define-key cscope-list-entry-keymap "i" 'cscope-find-files-including-file)
   ;; --- (The '---' indicates that this line corresponds to a menu separator.)
-  (define-key cscope-list-entry-keymap "n" 'cscope-next-symbol)
-  (define-key cscope-list-entry-keymap "N" 'cscope-next-file)
-  (define-key cscope-list-entry-keymap "p" 'cscope-prev-symbol)
-  (define-key cscope-list-entry-keymap "P" 'cscope-prev-file)
-  (define-key cscope-list-entry-keymap "u" 'cscope-pop-mark)
-  ;; ---
   (define-key cscope-list-entry-keymap (kbd "p")   'cscope-history-backward-line)
   (define-key cscope-list-entry-keymap (kbd "M-p") 'cscope-history-backward-file)
+  (define-key cscope-list-entry-keymap (kbd "P")   'cscope-history-backward-file)
   (define-key cscope-list-entry-keymap (kbd "M-P") 'cscope-history-backward-result)
   (define-key cscope-list-entry-keymap (kbd "n")   'cscope-history-forward-line)
   (define-key cscope-list-entry-keymap (kbd "M-n") 'cscope-history-forward-file)
+  (define-key cscope-list-entry-keymap (kbd "N")   'cscope-history-forward-file)
   (define-key cscope-list-entry-keymap (kbd "M-N") 'cscope-history-forward-result)
   (define-key cscope-list-entry-keymap (kbd "k")   'cscope-history-kill-line)
   (define-key cscope-list-entry-keymap (kbd "M-k") 'cscope-history-kill-file)
   (define-key cscope-list-entry-keymap (kbd "M-K") 'cscope-history-kill-result)
+  (define-key cscope-list-entry-keymap "u"         'cscope-pop-mark)
   ;; ---
   (define-key cscope-list-entry-keymap "r" 'cscope-rerun-search-at-point)
   ;; ---
@@ -1150,10 +1147,10 @@ directory should begin.")
   ;; --- (The '---' indicates that this line corresponds to a menu separator.)
   (define-key cscope:map "\C-csb" 'cscope-display-buffer)
   (define-key cscope:map "\C-csB" 'cscope-display-buffer-toggle)
-  (define-key cscope:map "\C-csn" 'cscope-next-symbol)
-  (define-key cscope:map "\C-csN" 'cscope-next-file)
-  (define-key cscope:map "\C-csp" 'cscope-prev-symbol)
-  (define-key cscope:map "\C-csP" 'cscope-prev-file)
+  (define-key cscope:map "\C-csn" 'cscope-history-forward-line)
+  (define-key cscope:map "\C-csN" 'cscope-history-forward-file)
+  (define-key cscope:map "\C-csp" 'cscope-history-backward-line)
+  (define-key cscope:map "\C-csP" 'cscope-history-backward-file)
   (define-key cscope:map "\C-csu" 'cscope-pop-mark)
   ;; ---
   (define-key cscope:map "\C-csa" 'cscope-set-initial-directory)
@@ -1186,28 +1183,32 @@ directory should begin.")
          "-----------"
          [ "Display *cscope* buffer" cscope-display-buffer t ]
          [ "Auto display *cscope* buffer toggle"
-           cscope-display-buffer-toggle t ]
-         [ "Next symbol"     	cscope-next-symbol t ]
-         [ "Next file"       	cscope-next-file t ]
-         [ "Previous symbol" 	cscope-prev-symbol t ]
-         [ "Previous file"   	cscope-prev-file t ]
-         [ "Pop mark"        	cscope-pop-mark t ]
+           cscope-display-buffer-toggle t ]))
+
+      (menu-only-global
+       '([ "Next symbol"        cscope-history-forward-line t ]
+         [ "Next file"          cscope-history-forward-file t ]
+         [ "Previous symbol"    cscope-history-backward-line t ]
+         [ "Previous file"      cscope-history-backward-file t ]
+         [ "Pop mark"           cscope-pop-mark t ]
          "-----------"
          ))
 
       (menu-only-cscope
-       '([ "History backward result"   cscope-history-backward-result t ]
-         [ "History backward file"     cscope-history-backward-file t ]
-         [ "History backward line"     cscope-history-backward-line t ]
-         [ "History forward result"    cscope-history-forward-result t ]
-         [ "History forward file"      cscope-history-forward-file t ]
-         [ "History forward line"      cscope-history-forward-line t ]
-         [ "History kill result"       cscope-history-kill-result t ]
-         [ "History kill file"         cscope-history-kill-file t ]
-         [ "History kill line"         cscope-history-kill-line t ]
+       '([ "Next symbol"         cscope-history-forward-line t ]
+         [ "Next file"           cscope-history-forward-file t ]
+         [ "Next result"         cscope-history-forward-result t ]
+         [ "Previous symbol"     cscope-history-backward-line t ]
+         [ "Previous file"       cscope-history-backward-file t ]
+         [ "Previous result"     cscope-history-backward-result t ]
+         [ "Kill symbol"         cscope-history-kill-line t ]
+         [ "Kill file"           cscope-history-kill-file t ]
+         [ "Kill result"         cscope-history-kill-result t ]
+         [ "Pop mark"            cscope-pop-mark t ]
          "-----------"
          [ "Rerun search at point"     cscope-rerun-search-at-point t ]
-         "-----------"))
+         "-----------"
+         ))
 
       (menu-after
        '(( "Cscope Database"
@@ -1267,7 +1268,7 @@ directory should begin.")
   (easy-menu-define cscope:menu
     cscope:map
     "cscope menu"
-    `("Cscope" ,@menu-before ,@menu-after))
+    `("Cscope" ,@menu-before ,@menu-only-global ,@menu-after))
 
   (easy-menu-define cscope:menu
      cscope-list-entry-keymap
@@ -1583,48 +1584,6 @@ Point is not saved on mark ring."
     ))
 
 
-(defun cscope-buffer-search (do-symbol do-next)
-  "The body of the following four functions:
-     'cscope-next-symbol'
-     'cscope-next-file'
-     'cscope-prev-symbol'
-     'cscope-prev-file'"
-  (let* (line-number old-point point
-		     (search-file (not do-symbol))
-		     (search-prev (not do-next))
-		     (direction (if do-next 1 -1))
-		     (old-buffer (current-buffer))
-		     (old-buffer-window (get-buffer-window old-buffer))
-		     (buffer (get-buffer cscope-output-buffer-name))
-		     (buffer-window (get-buffer-window (or buffer (error "The *cscope* buffer does not exist yet"))))
-		     )
-    (set-buffer buffer)
-    (setq old-point (point))
-    (forward-line direction)
-    (setq point (point))
-
-    (setq line-number (elt (cscope-get-navigation-properties) 1))
-    (while (or (not line-number)
-	       (or (and do-symbol (= line-number -1))
-		   (and search-file  (/= line-number -1))))
-      (forward-line direction)
-      (setq point (point))
-      (if (or (and do-next (>= point (point-max)))
-	      (and search-prev (<= point (point-min))))
-	  (progn
-	    (goto-char old-point)
-	    (error "The %s of the *cscope* buffer has been reached"
-		   (if do-next "end" "beginning"))))
-          (setq line-number (elt (cscope-get-navigation-properties) 1)))
-    (if (eq old-buffer buffer) ;; In the *cscope* buffer.
-	(cscope-show-entry-other-window)
-      (cscope-select-entry-specified-window old-buffer-window) ;; else
-      (if (windowp buffer-window)
-	  (set-window-point buffer-window point)))
-    (set-buffer old-buffer)
-    ))
-
-
 (defun cscope-display-buffer ()
   "Display the *cscope* buffer."
   (interactive)
@@ -1642,29 +1601,33 @@ Point is not saved on mark ring."
   (message "The cscope-display-cscope-buffer variable is now %s."
            (if cscope-display-cscope-buffer "set" "unset")))
 
+(defun cscope-navigate-and-show (forms)
+  "This evaluates the navigation FORMS. These FORMS move the
+point in the *cscope* buffer, and this function shows the result
+in the source"
 
-(defun cscope-next-symbol ()
-  "Move to the next symbol in the *cscope* buffer."
-  (interactive)
-  (cscope-buffer-search t t))
+  (let* (old-point
+         point
+         (old-buffer (current-buffer))
+         (old-buffer-window (get-buffer-window old-buffer))
+         (cscope-buffer (get-buffer cscope-output-buffer-name))
+         (buffer-window (get-buffer-window (or cscope-buffer (error "The *cscope* buffer does not exist yet"))))
+         )
+    (set-buffer cscope-buffer)
+    (setq old-point (point))
+    (setq point (point))
 
+    (unless (eval forms)
+      (goto-char old-point)
+      (error "Error calling navigation function"))
+    (setq point (point))
 
-(defun cscope-next-file ()
-  "Move to the next file in the *cscope* buffer."
-  (interactive)
-  (cscope-buffer-search nil t))
-
-
-(defun cscope-prev-symbol ()
-  "Move to the previous symbol in the *cscope* buffer."
-  (interactive)
-  (cscope-buffer-search t nil))
-
-
-(defun cscope-prev-file ()
-  "Move to the previous file in the *cscope* buffer."
-  (interactive)
-  (cscope-buffer-search nil nil))
+    (if (eq old-buffer cscope-buffer) ;; In the *cscope* buffer.
+	(cscope-show-entry-other-window)
+      (cscope-select-entry-specified-window old-buffer-window) ;; else
+      (if (windowp buffer-window)
+	  (set-window-point buffer-window point)))
+    (set-buffer old-buffer)))
 
 (defun cscope-history-forward-backward (separator-regex do-next)
   "Body for 'cscope-history-forward-result'/'cscope-history-backward-result'
@@ -1696,12 +1659,14 @@ buffer."
 (defun cscope-history-forward-file ()
   "Navigate to the next file results in the *cscope* buffer."
   (interactive)
-  (cscope-history-forward-backward cscope-file-separator-start-regex t))
+  (cscope-navigate-and-show
+   '(cscope-history-forward-backward cscope-file-separator-start-regex t)))
 
 (defun cscope-history-backward-file ()
   "Navigate to the previous file results in the *cscope* buffer."
   (interactive)
-  (cscope-history-forward-backward cscope-file-separator-start-regex nil))
+  (cscope-navigate-and-show
+   '(cscope-history-forward-backward cscope-file-separator-start-regex nil)))
 
 (defun cscope-history-kill-file ()
   "Delete a cscope file set from the *cscope* buffer."
@@ -1728,23 +1693,25 @@ buffer."
   "Navigate to the next result line in the *cscope* buffer."
   (interactive)
 
-  (let ((target
-         (let ((at (save-excursion
-                     (end-of-line)
-                     (point))))
-           (next-single-property-change at 'cscope-line-number))))
-    (when target (goto-char target))))
+  (cscope-navigate-and-show
+   '(let ((target
+           (let ((at (save-excursion
+                       (end-of-line)
+                       (point))))
+             (next-single-property-change at 'cscope-line-number))))
+      (when target (goto-char target)))))
 
 (defun cscope-history-backward-line ()
   "Navigate to the previous result line in the *cscope* buffer."
   (interactive)
 
-  (let ((target
-         (let ((at (save-excursion
-                     (beginning-of-line)
-                     (previous-single-property-change (point) 'cscope-line-number))))
-           (previous-single-property-change at 'cscope-line-number))))
-    (when target (goto-char target))))
+  (cscope-navigate-and-show
+   '(let ((target
+           (let ((at (save-excursion
+                       (beginning-of-line)
+                       (previous-single-property-change (point) 'cscope-line-number))))
+             (previous-single-property-change at 'cscope-line-number))))
+      (when target (goto-char target)))))
 
 (defun cscope-history-kill-line ()
   "Delete a cscope line from the *cscope* buffer."
