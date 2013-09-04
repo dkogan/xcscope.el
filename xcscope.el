@@ -708,7 +708,7 @@ for this to work."
   :type 'boolean
   :group 'cscope)
 
-(defcustom cscope-max-cscope-buffer-size 100000
+(defcustom cscope-max-cscope-buffer-size 1000000
   "*If >0, limit the size of the *cscope* buffer. Only the
 'cscope-max-cscope-buffer-size' bytes at the end are kept,
 rounded up to keep whole sets of cscope output"
