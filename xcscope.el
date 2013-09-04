@@ -1346,7 +1346,7 @@ LINE-NUMBER if optional argument SAVE-MARK-P is non-nil.
 Put `overlay-arrow-string' if arrow-p is non-nil.
 Returns the window displaying BUFFER."
   (let ( (file              (elt navprops 0))
-         (line-number       (elt navprops 1))
+         (line-number       (or (elt navprops 1) -1))
          (fuzzy-search-text (elt navprops 2))
          buffer old-pos old-point new-point forward-point backward-point
          line-end line-length)
