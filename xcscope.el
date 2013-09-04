@@ -2235,9 +2235,7 @@ this is."
             ;; *cscope*, try to use the directory of the search at point
             (or cscope-initial-directory
                 (and (eq outbuf old-buffer)
-                     (let ((query-point
-                            (cscope-find-this-separator-start cscope-result-separator (point))))
-                       (get-text-property query-point 'cscope-directory))))))
+                     (get-text-property (point) 'cscope-directory)))))
           (msg (concat basemsg " " symbol))
           (args (list (format "-%d" search-id) symbol)))
     (if cscope-process
