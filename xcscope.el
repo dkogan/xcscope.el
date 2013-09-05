@@ -1476,7 +1476,7 @@ separator is found. Otherwise '(point-min)' is returned"
         ;; otherwise, use the end of the buffer
         (if strict nil (point-max))))))
 
-(defun cscope-get-history-bounds-this-result (start-regex &optional end-regex)
+(defun cscope-get-history-bounds-this-result-internal (start-regex &optional end-regex)
   "Returns a list of the beginning and the end of the results
 at (point). If END-REGEX is nil, the START-REGEX is used for both
 the start and end bounds; the region then contains the start
@@ -1504,6 +1504,17 @@ the computed bounds then nil is returned"
              (< (point) end))
         (list beg end)
       nil)))
+
+(defun cscope-get-history-bounds-this-result (which)
+  "Convenience wrapper around
+'cscope-get-history-bounds-this-result-internal'. WHICH is
+'result to ask for result bounds or 'file to ask for file bounds"
+  (cond
+   ((eq which 'result) (cscope-get-history-bounds-this-result-internal cscope-result-separator))
+   ((eq which 'file)   (cscope-get-history-bounds-this-result-internal cscope-file-separator-start-regex
+                                                                       cscope-file-separator-end-regex))
+   (t                  (error "cscope-get-history-bounds-this-result knows only about 'result and 'file"))))
+
 
 (defun cscope-get-navigation-properties (&optional at buffer)
   "Reads the cscope navigation properties on this line. The
@@ -1658,7 +1669,7 @@ buffer."
 (defun cscope-history-kill-result ()
   "Delete a cscope result from the *cscope* buffer."
   (interactive)
-  (let ((bounds (cscope-get-history-bounds-this-result cscope-result-separator)))
+  (let ((bounds (cscope-get-history-bounds-this-result 'result)))
     (if bounds (apply 'delete-region bounds)
       (error "Nothing to kill"))))
 
@@ -1677,8 +1688,7 @@ buffer."
 (defun cscope-history-kill-file ()
   "Delete a cscope file set from the *cscope* buffer."
   (interactive)
-  (let ((beg-end (cscope-get-history-bounds-this-result cscope-file-separator-start-regex
-                                                        cscope-file-separator-end-regex)))
+  (let ((beg-end (cscope-get-history-bounds-this-result 'file)))
     ;; I now have bounds for a candidate file region. If non-nil, this
     ;; includes the start/end separators. I make sure this region is valid and
     ;; if so, kill it
@@ -1775,7 +1785,7 @@ modified in-place"
     (error "A cscope search is still in progress -- only one at a time is allowed"))
 
   ;; move to where we were after the search is done??
-  (let ((beg-end (cscope-get-history-bounds-this-result cscope-result-separator)))
+  (let ((beg-end (cscope-get-history-bounds-this-result 'result)))
     (if beg-end
         (let* ((beg (elt beg-end 0))
                (end (elt beg-end 1))
