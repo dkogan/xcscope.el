@@ -1177,17 +1177,16 @@ directory should begin.")
          [ "Find a file" cscope-find-this-file t ]
          [ "Find files #including a file"
            cscope-find-files-including-file t ]
-         "-----------"
-         [ "Display *cscope* buffer" cscope-display-buffer t ]
-         [ "Auto display *cscope* buffer toggle"
-           cscope-display-buffer-toggle t ]))
+         "-----------"))
 
       (menu-only-global
-       '([ "Next symbol"        cscope-history-forward-line t ]
-         [ "Next file"          cscope-history-forward-file t ]
-         [ "Previous symbol"    cscope-history-backward-line t ]
-         [ "Previous file"      cscope-history-backward-file t ]
-         [ "Pop mark"           cscope-pop-mark t ]
+       '([ "Display *cscope* buffer" cscope-display-buffer t ]
+         "-----------"
+         [ "Next symbol"             cscope-history-forward-line t ]
+         [ "Next file"               cscope-history-forward-file t ]
+         [ "Previous symbol"         cscope-history-backward-line t ]
+         [ "Previous file"           cscope-history-backward-file t ]
+         [ "Pop mark"                cscope-pop-mark t ]
          "-----------"
          ))
 
