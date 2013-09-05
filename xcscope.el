@@ -1482,20 +1482,28 @@ at (point). If END-REGEX is nil, the START-REGEX is used for both
 the start and end bounds; the region then contains the start
 separator, but not the end separator. If END-REGEX is non-nil, it
 is used to find the end bound, and the region then contains both
-separators"
+separators. If some error has occured or if (point) isn't within
+the computed bounds then nil is returned"
 
-  (let ((beg (cscope-find-this-separator-start start-regex (point))))
+  (let* ((beg (cscope-find-this-separator-start start-regex (point)))
+         (end
+          (if end-regex
+              ;; we have an end regex
+              (save-excursion
+                (goto-char beg)
+                (re-search-forward (concat "^" end-regex) nil t nil))
 
-    (if end-regex
-        ;; we have an end regex
-        (save-excursion
-          (goto-char beg)
-          (let ((end (re-search-forward (concat "^" end-regex) nil t nil)))
-            (if end (list beg end) nil)))
+            ;; no end regex given. use the start regex
+            (cscope-find-next-separator-start start-regex beg))))
 
-      ;; no end regex given. use the start regex
-      (let ((end (cscope-find-next-separator-start start-regex beg)))
-        (list beg end)))))
+    ;; return the list if both bounds exist, and the original point is
+    ;; within those bounds
+    (if (and beg
+             end
+             (>= (point) beg)
+             (< (point) end))
+        (list beg end)
+      nil)))
 
 (defun cscope-get-navigation-properties (&optional at buffer)
   "Reads the cscope navigation properties on this line. The
@@ -1650,7 +1658,9 @@ buffer."
 (defun cscope-history-kill-result ()
   "Delete a cscope result from the *cscope* buffer."
   (interactive)
-  (apply 'delete-region (cscope-get-history-bounds-this-result cscope-result-separator)))
+  (let ((bounds (cscope-get-history-bounds-this-result cscope-result-separator)))
+    (if bounds (apply 'delete-region bounds)
+      (error "Nothing to kill"))))
 
 (defun cscope-history-forward-file ()
   "Navigate to the next file results in the *cscope* buffer."
@@ -1672,18 +1682,19 @@ buffer."
     ;; I now have bounds for a candidate file region. If non-nil, this
     ;; includes the start/end separators. I make sure this region is valid and
     ;; if so, kill it
-    (when (and beg-end (< (point) (cadr beg-end)))
-      (save-restriction
-        (save-excursion
-          (apply 'narrow-to-region beg-end)
+    (if beg-end
+        (save-restriction
+          (save-excursion
+            (apply 'narrow-to-region beg-end)
 
-          ;; I'm restricted to my region. This region is valid ONLY if its
-          ;; interior has no other file start separator or history separator
-          (goto-char (1+ (point-min)))
-          (unless (or (re-search-forward (concat "^" cscope-result-separator)           nil t)
-                      (re-search-forward (concat "^" cscope-file-separator-start-regex) nil t))
+            ;; I'm restricted to my region. This region is valid ONLY if its
+            ;; interior has no other file start separator or history separator
+            (goto-char (1+ (point-min)))
+            (unless (or (re-search-forward (concat "^" cscope-result-separator)           nil t)
+                        (re-search-forward (concat "^" cscope-file-separator-start-regex) nil t))
 
-            (apply 'delete-region beg-end)))))))
+              (apply 'delete-region beg-end))))
+      (error "Nothing to kill"))))
 
 (defun cscope-history-forward-line ()
   "Navigate to the next result line in the *cscope* buffer."
@@ -1763,19 +1774,22 @@ modified in-place"
   (when cscope-process
     (error "A cscope search is still in progress -- only one at a time is allowed"))
 
-  (let* ((beg-end (cscope-get-history-bounds-this-result cscope-result-separator))
-         (beg (elt beg-end 0))
-         (end (elt beg-end 1))
-         (search (get-text-property beg 'cscope-stored-search))
+  ;; move to where we were after the search is done??
+  (let ((beg-end (cscope-get-history-bounds-this-result cscope-result-separator)))
+    (if beg-end
+        (let* ((beg (elt beg-end 0))
+               (end (elt beg-end 1))
+               (search (get-text-property beg 'cscope-stored-search))
 
-         ;; try to rerun the search in the same directory as before
-         (cscope-initial-directory (or cscope-initial-directory
-                                       (get-text-property beg 'cscope-directory)))
-         cscope-rerunning-search ;; this is bound here to tell cscope-call to not move the point
-         )
-    (delete-region beg end)
-    (goto-char beg)
-    (eval search)))
+               ;; try to rerun the search in the same directory as before
+               (cscope-initial-directory (or cscope-initial-directory
+                                             (get-text-property beg 'cscope-directory)))
+               cscope-rerunning-search ;; this is bound here to tell cscope-call to not move the point
+               )
+          (delete-region beg end)
+          (goto-char beg)
+          (eval search))
+      (error "No result at point"))))
 
 (defun cscope-set-initial-directory (cs-id)
   "Set the cscope-initial-directory variable.  The
