@@ -90,7 +90,7 @@
 ;;    ~/.emacs file to add keybindings that reduce the number of keystrokes
 ;;    required.  For example, the following will add "C-f#" keybindings, which
 ;;    are easier to type than the usual "C-c s" prefixed keybindings.  Note
-;;    that specifying "global-map" instead of "cscope:map" makes the
+;;    that specifying "global-map" instead of "cscope-global-keymap" makes the
 ;;    keybindings available in all buffers:
 ;;
 ;;	(define-key global-map [(control f3)]  'cscope-set-initial-directory)
@@ -926,66 +926,63 @@ at the start of a line, so the leading ^ must be omitted")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defconst cscope-running-in-xemacs (string-match "XEmacs\\|Lucid" emacs-version))
 
-(defvar cscope-list-entry-keymap nil
-  "The keymap used in the *cscope* buffer which lists search results.")
-(if cscope-list-entry-keymap
-    nil
-  (setq cscope-list-entry-keymap (make-keymap))
-  (suppress-keymap cscope-list-entry-keymap)
-  ;; The following section does not appear in the "Cscope" menu.
-  (if cscope-running-in-xemacs
-      (define-key cscope-list-entry-keymap [button2] 'cscope-mouse-select-entry-other-window)
-    (define-key cscope-list-entry-keymap [mouse-2] 'cscope-mouse-select-entry-other-window))
-  (define-key cscope-list-entry-keymap [return] 'cscope-select-entry-other-window)
-  ;; \r is for Emacs:
-  (define-key cscope-list-entry-keymap "\r" 'cscope-select-entry-other-window)
-  (define-key cscope-list-entry-keymap " " 'cscope-show-entry-other-window)
-  (define-key cscope-list-entry-keymap "o" 'cscope-select-entry-one-window)
-  (define-key cscope-list-entry-keymap "q" 'cscope-bury-buffer)
-  (define-key cscope-list-entry-keymap "Q" 'cscope-quit)
-  (define-key cscope-list-entry-keymap "h" 'cscope-help)
-  (define-key cscope-list-entry-keymap "?" 'cscope-help)
-  ;; The following line corresponds to be beginning of the "Cscope" menu.
-  (define-key cscope-list-entry-keymap "s" 'cscope-find-this-symbol)
-  (define-key cscope-list-entry-keymap "d" 'cscope-find-this-symbol)
-  (define-key cscope-list-entry-keymap "g" 'cscope-find-global-definition)
-  (define-key cscope-list-entry-keymap "G"
-    'cscope-find-global-definition-no-prompting)
-  (define-key cscope-list-entry-keymap "=" 'cscope-find-assignments-to-this-symbol)
-  (define-key cscope-list-entry-keymap "c" 'cscope-find-functions-calling-this-function)
-  (define-key cscope-list-entry-keymap "C" 'cscope-find-called-functions)
-  (define-key cscope-list-entry-keymap "t" 'cscope-find-this-text-string)
-  (define-key cscope-list-entry-keymap "e" 'cscope-find-egrep-pattern)
-  (define-key cscope-list-entry-keymap "f" 'cscope-find-this-file)
-  (define-key cscope-list-entry-keymap "i" 'cscope-find-files-including-file)
-  ;; --- (The '---' indicates that this line corresponds to a menu separator.)
-  (define-key cscope-list-entry-keymap (kbd "p")   'cscope-history-backward-line)
-  (define-key cscope-list-entry-keymap (kbd "M-p") 'cscope-history-backward-file)
-  (define-key cscope-list-entry-keymap (kbd "P")   'cscope-history-backward-file)
-  (define-key cscope-list-entry-keymap (kbd "M-P") 'cscope-history-backward-result)
-  (define-key cscope-list-entry-keymap (kbd "n")   'cscope-history-forward-line)
-  (define-key cscope-list-entry-keymap (kbd "M-n") 'cscope-history-forward-file)
-  (define-key cscope-list-entry-keymap (kbd "N")   'cscope-history-forward-file)
-  (define-key cscope-list-entry-keymap (kbd "M-N") 'cscope-history-forward-result)
-  (define-key cscope-list-entry-keymap (kbd "k")   'cscope-history-kill-line)
-  (define-key cscope-list-entry-keymap (kbd "M-k") 'cscope-history-kill-file)
-  (define-key cscope-list-entry-keymap (kbd "M-K") 'cscope-history-kill-result)
-  (define-key cscope-list-entry-keymap "u"         'cscope-pop-mark)
-  ;; ---
-  (define-key cscope-list-entry-keymap "r" 'cscope-rerun-search-at-point)
-  ;; ---
-  (define-key cscope-list-entry-keymap "a" 'cscope-set-initial-directory)
-  (define-key cscope-list-entry-keymap "A" 'cscope-unset-initial-directory)
-  ;; ---
-  (define-key cscope-list-entry-keymap "L" 'cscope-create-list-of-files-to-index)
-  (define-key cscope-list-entry-keymap "I" 'cscope-index-files)
-  (define-key cscope-list-entry-keymap "E" 'cscope-edit-list-of-files-to-index)
-  (define-key cscope-list-entry-keymap "W" 'cscope-tell-user-about-directory)
-  (define-key cscope-list-entry-keymap "S" 'cscope-tell-user-about-directory)
-  (define-key cscope-list-entry-keymap "T" 'cscope-tell-user-about-directory)
-  (define-key cscope-list-entry-keymap "D" 'cscope-dired-directory)
-  ;; The previous line corresponds to be end of the "Cscope" menu.
-  )
+(defvar cscope-list-entry-keymap
+  (let ((map (make-keymap)))
+    (suppress-keymap map)
+    ;; The following section does not appear in the "Cscope" menu.
+    (if cscope-running-in-xemacs
+        (define-key map [button2] 'cscope-mouse-select-entry-other-window)
+      (define-key map [mouse-2] 'cscope-mouse-select-entry-other-window))
+    (define-key map [return] 'cscope-select-entry-other-window)
+    ;; \r is for Emacs:
+    (define-key map "\r" 'cscope-select-entry-other-window)
+    (define-key map " " 'cscope-show-entry-other-window)
+    (define-key map "o" 'cscope-select-entry-one-window)
+    (define-key map "q" 'cscope-bury-buffer)
+    (define-key map "Q" 'cscope-quit)
+    (define-key map "h" 'cscope-help)
+    (define-key map "?" 'cscope-help)
+    ;; The following line corresponds to be beginning of the "Cscope" menu.
+    (define-key map "s" 'cscope-find-this-symbol)
+    (define-key map "d" 'cscope-find-this-symbol)
+    (define-key map "g" 'cscope-find-global-definition)
+    (define-key map "G" 'cscope-find-global-definition-no-prompting)
+    (define-key map "=" 'cscope-find-assignments-to-this-symbol)
+    (define-key map "c" 'cscope-find-functions-calling-this-function)
+    (define-key map "C" 'cscope-find-called-functions)
+    (define-key map "t" 'cscope-find-this-text-string)
+    (define-key map "e" 'cscope-find-egrep-pattern)
+    (define-key map "f" 'cscope-find-this-file)
+    (define-key map "i" 'cscope-find-files-including-file)
+    ;; --- (The '---' indicates that this line corresponds to a menu separator.)
+    (define-key map (kbd "p")   'cscope-history-backward-line)
+    (define-key map (kbd "M-p") 'cscope-history-backward-file)
+    (define-key map (kbd "P")   'cscope-history-backward-file)
+    (define-key map (kbd "M-P") 'cscope-history-backward-result)
+    (define-key map (kbd "n")   'cscope-history-forward-line)
+    (define-key map (kbd "M-n") 'cscope-history-forward-file)
+    (define-key map (kbd "N")   'cscope-history-forward-file)
+    (define-key map (kbd "M-N") 'cscope-history-forward-result)
+    (define-key map (kbd "k")   'cscope-history-kill-line)
+    (define-key map (kbd "M-k") 'cscope-history-kill-file)
+    (define-key map (kbd "M-K") 'cscope-history-kill-result)
+    (define-key map "u"         'cscope-pop-mark)
+    ;; ---
+    (define-key map "r" 'cscope-rerun-search-at-point)
+    ;; ---
+    (define-key map "a" 'cscope-set-initial-directory)
+    (define-key map "A" 'cscope-unset-initial-directory)
+    ;; ---
+    (define-key map "L" 'cscope-create-list-of-files-to-index)
+    (define-key map "I" 'cscope-index-files)
+    (define-key map "E" 'cscope-edit-list-of-files-to-index)
+    (define-key map "W" 'cscope-tell-user-about-directory)
+    (define-key map "S" 'cscope-tell-user-about-directory)
+    (define-key map "T" 'cscope-tell-user-about-directory)
+    (define-key map "D" 'cscope-dired-directory)
+    ;; The previous line corresponds to be end of the "Cscope" menu.
+    map)
+  "The *cscope* buffer keymap")
 
 
 (defvar cscope-list-entry-hook nil
@@ -1127,43 +1124,43 @@ directory should begin.")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defvar cscope:map nil
-  "The cscope keymap.")
-(if cscope:map
-    nil
-  (setq cscope:map (make-sparse-keymap))
-  ;; The following line corresponds to be beginning of the "Cscope" menu.
-  (define-key cscope:map "\C-css" 'cscope-find-this-symbol)
-  (define-key cscope:map "\C-csd" 'cscope-find-global-definition)
-  (define-key cscope:map "\C-csg" 'cscope-find-global-definition)
-  (define-key cscope:map "\C-csG" 'cscope-find-global-definition-no-prompting)
-  (define-key cscope:map "\C-cs=" 'cscope-find-assignments-to-this-symbol)
-  (define-key cscope:map "\C-csc" 'cscope-find-functions-calling-this-function)
-  (define-key cscope:map "\C-csC" 'cscope-find-called-functions)
-  (define-key cscope:map "\C-cst" 'cscope-find-this-text-string)
-  (define-key cscope:map "\C-cse" 'cscope-find-egrep-pattern)
-  (define-key cscope:map "\C-csf" 'cscope-find-this-file)
-  (define-key cscope:map "\C-csi" 'cscope-find-files-including-file)
-  ;; --- (The '---' indicates that this line corresponds to a menu separator.)
-  (define-key cscope:map "\C-csb" 'cscope-display-buffer)
-  (define-key cscope:map "\C-csB" 'cscope-display-buffer-toggle)
-  (define-key cscope:map "\C-csn" 'cscope-history-forward-line)
-  (define-key cscope:map "\C-csN" 'cscope-history-forward-file)
-  (define-key cscope:map "\C-csp" 'cscope-history-backward-line)
-  (define-key cscope:map "\C-csP" 'cscope-history-backward-file)
-  (define-key cscope:map "\C-csu" 'cscope-pop-mark)
-  ;; ---
-  (define-key cscope:map "\C-csa" 'cscope-set-initial-directory)
-  (define-key cscope:map "\C-csA" 'cscope-unset-initial-directory)
-  ;; ---
-  (define-key cscope:map "\C-csL" 'cscope-create-list-of-files-to-index)
-  (define-key cscope:map "\C-csI" 'cscope-index-files)
-  (define-key cscope:map "\C-csE" 'cscope-edit-list-of-files-to-index)
-  (define-key cscope:map "\C-csW" 'cscope-tell-user-about-directory)
-  (define-key cscope:map "\C-csS" 'cscope-tell-user-about-directory)
-  (define-key cscope:map "\C-csT" 'cscope-tell-user-about-directory)
-  (define-key cscope:map "\C-csD" 'cscope-dired-directory))
-  ;; The previous line corresponds to be end of the "Cscope" menu.
+(defvar cscope-global-keymap
+  (let ((map (make-sparse-keymap)))
+    ;; The following line corresponds to be beginning of the "Cscope" menu.
+    (define-key map "\C-css" 'cscope-find-this-symbol)
+    (define-key map "\C-csd" 'cscope-find-global-definition)
+    (define-key map "\C-csg" 'cscope-find-global-definition)
+    (define-key map "\C-csG" 'cscope-find-global-definition-no-prompting)
+    (define-key map "\C-cs=" 'cscope-find-assignments-to-this-symbol)
+    (define-key map "\C-csc" 'cscope-find-functions-calling-this-function)
+    (define-key map "\C-csC" 'cscope-find-called-functions)
+    (define-key map "\C-cst" 'cscope-find-this-text-string)
+    (define-key map "\C-cse" 'cscope-find-egrep-pattern)
+    (define-key map "\C-csf" 'cscope-find-this-file)
+    (define-key map "\C-csi" 'cscope-find-files-including-file)
+    ;; --- (The '---' indicates that this line corresponds to a menu separator.)
+    (define-key map "\C-csb" 'cscope-display-buffer)
+    (define-key map "\C-csB" 'cscope-display-buffer-toggle)
+    (define-key map "\C-csn" 'cscope-history-forward-line)
+    (define-key map "\C-csN" 'cscope-history-forward-file)
+    (define-key map "\C-csp" 'cscope-history-backward-line)
+    (define-key map "\C-csP" 'cscope-history-backward-file)
+    (define-key map "\C-csu" 'cscope-pop-mark)
+    ;; ---
+    (define-key map "\C-csa" 'cscope-set-initial-directory)
+    (define-key map "\C-csA" 'cscope-unset-initial-directory)
+    ;; ---
+    (define-key map "\C-csL" 'cscope-create-list-of-files-to-index)
+    (define-key map "\C-csI" 'cscope-index-files)
+    (define-key map "\C-csE" 'cscope-edit-list-of-files-to-index)
+    (define-key map "\C-csW" 'cscope-tell-user-about-directory)
+    (define-key map "\C-csS" 'cscope-tell-user-about-directory)
+    (define-key map "\C-csT" 'cscope-tell-user-about-directory)
+    (define-key map "\C-csD" 'cscope-dired-directory)
+    ;; The previous line corresponds to be end of the "Cscope" menu.
+
+    map)
+  "The global cscope keymap")
 
 (let ((menu-before
        '([ "Find symbol" cscope-find-this-symbol t ]
@@ -1266,7 +1263,7 @@ directory should begin.")
          )))
 
   (easy-menu-define cscope:menu
-    cscope:map
+    cscope-global-keymap
     "cscope menu"
     `("Cscope" ,@menu-before ,@menu-only-global ,@menu-after))
 
@@ -2659,7 +2656,7 @@ file."
     (setq cscope-minor-mode (if (null arg) t (car arg)))
     (if cscope-minor-mode
 	(progn
-	  (easy-menu-add cscope:menu cscope:map)
+	  (easy-menu-add cscope:menu cscope-global-keymap)
 	  (run-hooks 'cscope-minor-mode-hooks)
 	  ))
     cscope-minor-mode
@@ -2674,7 +2671,7 @@ file."
 
 
 (or (assq 'cscope-minor-mode minor-mode-map-alist)
-    (setq minor-mode-map-alist (cons (cons 'cscope-minor-mode cscope:map)
+    (setq minor-mode-map-alist (cons (cons 'cscope-minor-mode cscope-global-keymap)
 				     minor-mode-map-alist)))
 
 (add-hook 'c-mode-hook (function cscope:hook))
