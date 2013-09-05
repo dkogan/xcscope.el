@@ -1688,22 +1688,11 @@ buffer."
 (defun cscope-history-kill-file ()
   "Delete a cscope file set from the *cscope* buffer."
   (interactive)
-  (let ((beg-end (cscope-get-history-bounds-this-result 'file)))
-    ;; I now have bounds for a candidate file region. If non-nil, this
-    ;; includes the start/end separators. I make sure this region is valid and
-    ;; if so, kill it
-    (if beg-end
-        (save-restriction
-          (save-excursion
-            (apply 'narrow-to-region beg-end)
-
-            ;; I'm restricted to my region. This region is valid ONLY if its
-            ;; interior has no other file start separator or history separator
-            (goto-char (1+ (point-min)))
-            (unless (or (re-search-forward (concat "^" cscope-result-separator)           nil t)
-                        (re-search-forward (concat "^" cscope-file-separator-start-regex) nil t))
-
-              (apply 'delete-region beg-end))))
+  (let ((bounds (cscope-get-history-bounds-this-result 'file)))
+    (if bounds
+        (progn
+          (apply 'delete-region bounds)
+          (cscope-history-kill-if-empty 'result))
       (error "Nothing to kill"))))
 
 (defun cscope-history-forward-line ()
@@ -1735,8 +1724,33 @@ buffer."
   (interactive)
   (save-excursion
     (beginning-of-line)
-    (when (get-text-property (point) 'cscope-line-number)
-      (delete-region (point) (progn (forward-line 1) (point))))))
+    (if (get-text-property (point) 'cscope-line-number)
+        (progn
+          (delete-region (point) (progn (forward-line 1) (point)))
+          (cscope-history-kill-if-empty 'file))
+      (error "Nothing to kill"))))
+
+(defun cscope-history-kill-if-empty (which)
+  "Kills object specified by WHICH, if it is empty. WHICH is
+either 'result or 'file"
+  (let ((bounds (cscope-get-history-bounds-this-result which)))
+    (unless
+        ;; not-empty condition computed here; different depending on WHICH
+        (cond
+         ((eq which 'file)
+          (let ((nextpropchange (next-single-property-change (car bounds) 'cscope-line-number nil (cadr bounds))))
+            (and nextpropchange
+                (/= nextpropchange (cadr bounds)))))
+         ((eq which 'result)
+
+          (save-excursion
+            (goto-char (car bounds))
+            (re-search-forward (concat "^" cscope-file-separator-start-regex) (cadr bounds) t nil)))
+         (t (error "cscope-history-kill-if-empty given unknown argument")))
+
+      (apply 'delete-region bounds)
+      (when (eq which 'file)
+        (cscope-history-kill-if-empty 'result)))))
 
 (defun cscope-pop-mark ()
   "Pop back to where cscope was last invoked."
