@@ -1706,7 +1706,7 @@ buffer."
            (let ((at (save-excursion
                        (beginning-of-line)
                        (previous-single-property-change (point) 'cscope-line-number))))
-             (previous-single-property-change at 'cscope-line-number))))
+             (and at (previous-single-property-change at 'cscope-line-number)))))
       (when target (goto-char target)))))
 
 (defun cscope-history-kill-line ()
