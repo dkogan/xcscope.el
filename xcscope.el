@@ -997,8 +997,8 @@ at the start of a line, so the leading ^ must be omitted")
   (setq mode-name "cscope"
 	major-mode 'cscope-list-entry-mode
 	overlay-arrow-string cscope-overlay-arrow-string)
-  (or overlay-arrow-position
-      (setq overlay-arrow-position (make-marker)))
+
+  (add-hook 'kill-buffer-hook 'cscope-cleanup-overlay-arrow)
   (run-hooks 'cscope-list-entry-hook))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1409,9 +1409,23 @@ Returns the window displaying BUFFER."
 		      (setq new-point (point)))
 		  (setq new-point old-point))
 		(set-window-point window new-point)
+
+                ;; if we're using an arrow overlay....
 		(if (and cscope-allow-arrow-overlays arrow-p)
-		    (set-marker overlay-arrow-position (point))
-		  (set-marker overlay-arrow-position nil))
+                    (set-marker
+
+                     ;; ... set the existing marker if there is one, or make a
+                     ;; new one ...
+                     (or overlay-arrow-position
+                         (setq overlay-arrow-position (make-marker)))
+
+                     ;; ... at point
+                     (point))
+
+                  ;; if we need to remove a marker, do that if there is one
+                  (when overlay-arrow-position
+                    (set-marker overlay-arrow-position nil)))
+
 		(or (not save-mark-p)
 		    (= old-pos (point))
 		    (push-mark old-pos))
@@ -1843,17 +1857,18 @@ overrides the current directory, which would otherwise be used."
 	   "Quit"
 	   "Help")))
 
+(defun cscope-cleanup-overlay-arrow ()
+  (when overlay-arrow-position
+    (set-marker overlay-arrow-position nil)
+    (setq overlay-arrow-position nil
+          overlay-arrow-string nil)))
 
 (defun cscope-bury-buffer ()
   "Clean up cscope, if necessary, and bury the buffer."
   (interactive)
-  (let ()
-    (if overlay-arrow-position
-	(set-marker overlay-arrow-position nil))
-    (setq overlay-arrow-position nil
-	  overlay-arrow-string nil)
-    (bury-buffer)
-    ))
+  (cscope-cleanup-overlay-arrow)
+  (bury-buffer))
+
 
 
 (defun cscope-quit ()
