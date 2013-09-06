@@ -1515,7 +1515,8 @@ the computed bounds then nil is returned"
     (if (and beg
              end
              (>= (point) beg)
-             (< (point) end))
+             (or (< (point) end)
+                 (and (eobp) (= (point) end))))
         (list beg end)
       nil)))
 
