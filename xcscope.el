@@ -1141,10 +1141,10 @@ directory should begin.")
     ;; --- (The '---' indicates that this line corresponds to a menu separator.)
     (define-key map "\C-csb" 'cscope-display-buffer)
     (define-key map "\C-csB" 'cscope-display-buffer-toggle)
-    (define-key map "\C-csn" 'cscope-history-forward-line)
-    (define-key map "\C-csN" 'cscope-history-forward-file)
-    (define-key map "\C-csp" 'cscope-history-backward-line)
-    (define-key map "\C-csP" 'cscope-history-backward-file)
+    (define-key map "\C-csn" 'cscope-history-forward-line-current-result)
+    (define-key map "\C-csN" 'cscope-history-forward-file-current-result)
+    (define-key map "\C-csp" 'cscope-history-backward-line-current-result)
+    (define-key map "\C-csP" 'cscope-history-backward-file-current-result)
     (define-key map "\C-csu" 'cscope-pop-mark)
     ;; ---
     (define-key map "\C-csa" 'cscope-set-initial-directory)
@@ -1182,10 +1182,10 @@ directory should begin.")
       (menu-only-global
        '([ "Display *cscope* buffer" cscope-display-buffer t ]
          "-----------"
-         [ "Next symbol"             cscope-history-forward-line t ]
-         [ "Next file"               cscope-history-forward-file t ]
-         [ "Previous symbol"         cscope-history-backward-line t ]
-         [ "Previous file"           cscope-history-backward-file t ]
+         [ "Next symbol"             cscope-history-forward-line-current-result t ]
+         [ "Next file"               cscope-history-forward-file-current-result t ]
+         [ "Previous symbol"         cscope-history-backward-line-current-result t ]
+         [ "Previous file"           cscope-history-backward-file-current-result t ]
          [ "Pop mark"                cscope-pop-mark t ]
          "-----------"
          ))
@@ -1645,11 +1645,27 @@ in the source"
          )
     (set-buffer cscope-buffer)
     (setq old-point (point))
-    (setq point (point))
 
-    (unless (eval forms)
-      (goto-char old-point)
-      (error "Error calling navigation function"))
+    ;; I can now evaluate the forms
+    (let ((forms-result
+
+           ;; if we're limiting to this result then ...
+           (if limit-to-current-result
+               (let ((bounds (cscope-get-history-bounds-this-result 'result)))
+                 (unless bounds (error "Couldn't find result bounds"))
+
+                 ;; ... narrow to this result before evaluating ...
+                 (save-restriction
+                   (apply 'narrow-to-region bounds)
+                   (eval forms)))
+
+             ;; ... otherwise just evaluate
+             (eval forms))))
+
+      (unless forms-result
+        (goto-char old-point)
+        (error "Error calling navigation function")))
+
     (setq point (point))
 
     (if (eq old-buffer cscope-buffer) ;; In the *cscope* buffer.
@@ -1688,17 +1704,33 @@ buffer."
     (if bounds (apply 'delete-region bounds)
       (error "Nothing to kill"))))
 
-(defun cscope-history-forward-file ()
+(defun cscope-history-forward-file ( &optional limit-to-current-result )
   "Navigate to the next file results in the *cscope* buffer."
   (interactive)
   (cscope-navigate-and-show
    '(cscope-history-forward-backward cscope-file-separator-start-regex t)))
 
-(defun cscope-history-backward-file ()
+(defun cscope-history-forward-file-current-result ()
+  "Like (cscope-history-forward-file), but limited to the current
+result only. This exists for blind navigation. If the user isn't
+looking at the *cscope* buffer, they shouldn't be jumping between
+results"
+  (interactive)
+  (cscope-history-forward-file t))
+
+(defun cscope-history-backward-file ( &optional limit-to-current-result )
   "Navigate to the previous file results in the *cscope* buffer."
   (interactive)
   (cscope-navigate-and-show
    '(cscope-history-forward-backward cscope-file-separator-start-regex nil)))
+
+(defun cscope-history-backward-file-current-result ()
+  "Like (cscope-history-backward-file), but limited to the current
+result only. This exists for blind navigation. If the user isn't
+looking at the *cscope* buffer, they shouldn't be jumping between
+results"
+  (interactive)
+  (cscope-history-backward-file t))
 
 (defun cscope-history-kill-file ()
   "Delete a cscope file set from the *cscope* buffer."
@@ -1710,7 +1742,7 @@ buffer."
           (cscope-history-kill-if-empty 'result))
       (error "Nothing to kill"))))
 
-(defun cscope-history-forward-line ()
+(defun cscope-history-forward-line ( &optional limit-to-current-result )
   "Navigate to the next result line in the *cscope* buffer."
   (interactive)
 
@@ -1722,7 +1754,15 @@ buffer."
              (next-single-property-change at 'cscope-line-number))))
       (when target (goto-char target)))))
 
-(defun cscope-history-backward-line ()
+(defun cscope-history-forward-line-current-result ()
+  "Like (cscope-history-forward-line), but limited to the current
+result only. This exists for blind navigation. If the user isn't
+looking at the *cscope* buffer, they shouldn't be jumping between
+results"
+  (interactive)
+  (cscope-history-forward-line t))
+
+(defun cscope-history-backward-line ( &optional limit-to-current-result )
   "Navigate to the previous result line in the *cscope* buffer."
   (interactive)
 
@@ -1733,6 +1773,14 @@ buffer."
                        (previous-single-property-change (point) 'cscope-line-number))))
              (and at (previous-single-property-change at 'cscope-line-number)))))
       (when target (goto-char target)))))
+
+(defun cscope-history-backward-line-current-result ()
+  "Like (cscope-history-backward-line), but limited to the current
+result only. This exists for blind navigation. If the user isn't
+looking at the *cscope* buffer, they shouldn't be jumping between
+results"
+  (interactive)
+  (cscope-history-backward-line t))
 
 (defun cscope-history-kill-line ()
   "Delete a cscope line from the *cscope* buffer."
