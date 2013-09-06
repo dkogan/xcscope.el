@@ -1451,20 +1451,25 @@ If FROM is anywhere in a separator string, this separator is
 used. If STRICT is non-nil this function returns nil if no
 separator is found. Otherwise '(point-min)' is returned"
 
-  (let ((separator-regex-at-bol (concat "^" separator-regex)))
-    (save-excursion
-      (goto-char from)
-      (beginning-of-line)
+  ;; if we're below (point-min), give up. This can happen when trying to search
+  ;; before eob. For instance, trying to find the prev result from eob
+  (if (< from (point-min))
+      (if strict nil (point-min))
 
-      ;; if we're at the separator, use it
-      (if (looking-at separator-regex) (point)
+    (let ((separator-regex-at-bol (concat "^" separator-regex)))
+      (save-excursion
+        (goto-char from)
+        (beginning-of-line)
 
-        ;; otherwise, find the previous separator
-        (or
-         (re-search-backward separator-regex-at-bol nil t nil)
+        ;; if we're at the separator, use it
+        (if (looking-at separator-regex) (point)
 
-         ;; if there isn't one, use the start of the buffer
-         (if strict nil (point-min)))))))
+          ;; otherwise, find the previous separator
+          (or
+           (re-search-backward separator-regex-at-bol nil t nil)
+
+           ;; if there isn't one, use the start of the buffer
+           (if strict nil (point-min))))))))
 
 (defun cscope-find-next-separator-start (separator-regex from &optional strict)
   "Finds the next start of the given separator after FROM.
@@ -1631,7 +1636,7 @@ Point is not saved on mark ring."
   (message "The cscope-display-cscope-buffer variable is now %s."
            (if cscope-display-cscope-buffer "set" "unset")))
 
-(defun cscope-navigate-and-show (forms)
+(defun cscope-navigate-and-show (forms &optional no-show)
   "This evaluates the navigation FORMS. These FORMS move the
 point in the *cscope* buffer, and this function shows the result
 in the source"
@@ -1664,15 +1669,16 @@ in the source"
 
       (unless forms-result
         (goto-char old-point)
-        (error "Error calling navigation function")))
+        (error "Can't move further")))
 
     (setq point (point))
 
-    (if (eq old-buffer cscope-buffer) ;; In the *cscope* buffer.
-	(cscope-show-entry-other-window)
-      (cscope-select-entry-specified-window old-buffer-window) ;; else
-      (if (windowp buffer-window)
-	  (set-window-point buffer-window point)))
+    (unless no-show
+      (if (eq old-buffer cscope-buffer) ;; In the *cscope* buffer.
+          (cscope-show-entry-other-window)
+        (cscope-select-entry-specified-window old-buffer-window) ;; else
+        (if (windowp buffer-window)
+            (set-window-point buffer-window point))))
     (set-buffer old-buffer)))
 
 (defun cscope-history-forward-backward (separator-regex do-next)
@@ -1685,17 +1691,19 @@ and 'cscope-history-forward-file'/'cscope-history-backward-file'"
                                                      (- (point) (if (looking-at separator-regex) 1 0)) t)))))
     (when target-point (goto-char target-point))))
 
-(defun cscope-history-forward-result ()
+(defun cscope-history-forward-result ( &optional limit-to-current-result )
   "Navigate to the next stored search results in the *cscope*
 buffer."
   (interactive)
-  (cscope-history-forward-backward cscope-result-separator t))
+  (cscope-navigate-and-show
+   '(cscope-history-forward-backward cscope-result-separator t) t))
 
-(defun cscope-history-backward-result ()
+(defun cscope-history-backward-result ( &optional limit-to-current-result )
   "Navigate to the previous stored search results in the *cscope*
 buffer."
   (interactive)
-  (cscope-history-forward-backward cscope-result-separator nil))
+  (cscope-navigate-and-show
+   '(cscope-history-forward-backward cscope-result-separator nil) t))
 
 (defun cscope-history-kill-result ()
   "Delete a cscope result from the *cscope* buffer."
