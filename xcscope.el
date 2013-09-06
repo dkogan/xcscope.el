@@ -1488,7 +1488,7 @@ separator is found. Otherwise '(point-min)' is returned"
 
           ;; if there is a next one, navigate to its start, and use it
           (progn
-            (previous-line)
+            (forward-line -1)
             (beginning-of-line)
             (point))
 
