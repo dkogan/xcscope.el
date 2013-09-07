@@ -2045,8 +2045,7 @@ Magic text properties are added to allow the user to select lines
 using the mouse."
   (let ( (old-buffer (current-buffer)) )
     (with-current-buffer (process-buffer process)
-      (let ((moving (= (point) (process-mark process)))
-            line file function-name line-number)
+      (let (line file function-name line-number)
         (save-excursion
           (goto-char (process-mark process))
           ;; Get the output thus far ...
@@ -2127,8 +2126,6 @@ using the mouse."
               ))
           (set-marker (process-mark process) (point))
           )
-        (if moving
-            (goto-char (process-mark process)))
         (set-buffer-modified-p nil)))))
 
 
@@ -2140,8 +2137,7 @@ using the mouse."
 	 (old-buffer-window (get-buffer-window old-buffer)) )
 
     (with-current-buffer buffer
-      (let ((moving (= (point) (process-mark process)))
-            continue)
+      (let (continue)
         (save-excursion
           (goto-char (process-mark process))
 
@@ -2219,10 +2215,7 @@ using the mouse."
                   (delete-region (point-min) cut-at-point))))))
 
         (if (and done (eq old-buffer buffer) cscope-first-match-point)
-            (cscope-help))
-
-        (if moving
-            (goto-char (process-mark process)))))))
+            (cscope-help))))))
 
 
 
