@@ -1435,9 +1435,8 @@ Returns the window displaying BUFFER."
 	      (progn ;; The search was successful.  Save the marker so it
                      ;; can be returned to by cscope-pop-mark.
 		(ring-insert cscope-marker-ring cscope-marker)
-		;; Unset cscope-marker so that moving between matches
-		;; (cscope-next-symbol, etc.) does not fill
-		;; cscope-marker-ring.
+		;; Unset cscope-marker so that moving between matches does not
+		;; fill cscope-marker-ring.
 		(setq cscope-marker nil)))
           (setq cscope-marker-window window)
 	  )
