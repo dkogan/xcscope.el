@@ -2182,7 +2182,7 @@ using the mouse."
                 (setq modeline-process ": Search complete"))
 
             ;; save the directory of this search
-            (let ((search-start-point (cscope-find-this-separator-start cscope-result-separator (point) t)))
+            (let ((search-start-point (cscope-find-this-separator-start cscope-result-separator (1- (point)) t)))
               (put-text-property search-start-point (point) 'cscope-directory default-directory))
 
             (if cscope-start-directory
