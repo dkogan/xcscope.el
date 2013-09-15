@@ -1076,7 +1076,7 @@ nil (meaning, \"no flags\").")
 (make-variable-buffer-local 'cscope-stop-at-first-match-dir-meta)
 
 
-(defvar cscope-last-user-search nil
+(defvar cscope-fuzzy-search-symbol nil
   "If non-nil, the location of text reported by cscope should be
 adjusted by searching for the text that the user searched for. If
 the sources are exactly the same as when the cscope database was
@@ -1281,7 +1281,7 @@ The text properties to be added:
 - common property: mouse-face,
 - properties are used to open target file and its location: cscope-file,
   cscope-line-number
-- cscope-last-user-search used to keep track of the symbol that was searched for. This
+- cscope-fuzzy-search-symbol used to keep track of the symbol that was searched for. This
   can now vary since unrelated searches can live in the same buffer"
   (let (plist beg end)
 
@@ -1299,8 +1299,8 @@ The text properties to be added:
 
     ;; If I was given the input search text, fuzzy search with that. Otherwise
     ;; use the line I got from scope, unless it is "<unknown>". See docstring
-    ;; for 'cscope-last-user-search' for more details
-    (let ((fuzzy-property (or cscope-last-user-search
+    ;; for 'cscope-fuzzy-search-symbol' for more details
+    (let ((fuzzy-property (or cscope-fuzzy-search-symbol
                               (if (string= line "<unknown>")
                                   nil line))))
       (when fuzzy-property
@@ -1367,7 +1367,7 @@ Returns the window displaying BUFFER."
                 ;; the wrong line numbers. Here I try to correct for this by
                 ;; searching for the cscope results in the text around where
                 ;; cscope said they should appear. See docstring for
-                ;; 'cscope-last-user-search' for more details
+                ;; 'cscope-fuzzy-search-symbol' for more details
 		(if (and fuzzy-search-text cscope-fuzzy-search-range)
 		    (progn
 		      ;; Calculate the length of the line specified by cscope.
@@ -2638,7 +2638,7 @@ file."
   (interactive (list
 		(cscope-prompt-for-symbol "Find this symbol: " nil nil)
 		))
-  (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
+  (setq cscope-fuzzy-search-symbol symbol)  ;; Fuzzy match with the search input
   (cscope-call "Finding symbol:" 0 symbol `(cscope-find-this-symbol ,symbol))
   )
 
@@ -2648,7 +2648,7 @@ file."
   (interactive (list
 		(cscope-prompt-for-symbol "Find this global definition: " nil nil)
 		))
-  (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
+  (setq cscope-fuzzy-search-symbol symbol)  ;; Fuzzy match with the search input
   (cscope-call "Finding global definition:" 1 symbol `(cscope-find-global-definition ,symbol))
   )
 
@@ -2657,7 +2657,7 @@ file."
   "Find a symbol's global definition without prompting."
   (interactive)
   (let ( (symbol (cscope-extract-symbol-at-cursor nil nil)))
-    (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
+    (setq cscope-fuzzy-search-symbol symbol)  ;; Fuzzy match with the search input
     (cscope-call "Finding global definition:" 1 symbol `(cscope-find-global-definition-no-prompting ,symbol))
     ))
 
@@ -2668,7 +2668,7 @@ file."
 		(cscope-prompt-for-symbol
 		 "Find functions called by this function: " nil nil)
 		))
-  (setq cscope-last-user-search nil)  ;; Fuzzy match with the cscope results
+  (setq cscope-fuzzy-search-symbol nil)  ;; Fuzzy match with the cscope results
   (cscope-call "Finding functions called by:" 2 symbol `(cscope-find-called-functions ,symbol))
   )
 
@@ -2679,7 +2679,7 @@ file."
 		(cscope-prompt-for-symbol
 		 "Find functions calling this function: " nil nil)
 		))
-  (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
+  (setq cscope-fuzzy-search-symbol symbol)  ;; Fuzzy match with the search input
   (cscope-call "Finding functions calling:" 3 symbol `(cscope-find-functions-calling-this-function ,symbol))
   )
 
@@ -2689,7 +2689,7 @@ file."
   (interactive (list
 		(cscope-prompt-for-symbol "Find this text string: " nil t)
 		))
-  (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
+  (setq cscope-fuzzy-search-symbol symbol)  ;; Fuzzy match with the search input
   (cscope-call "Finding text string:" 4 symbol `(cscope-find-this-text-string ,symbol))
   )
 
@@ -2700,7 +2700,7 @@ file."
 		(let (cscope-no-mouse-prompts)
 		  (cscope-prompt-for-symbol "Find this egrep pattern: " nil t))
 		))
-  (setq cscope-last-user-search nil)  ;; Fuzzy match with the cscope results
+  (setq cscope-fuzzy-search-symbol nil)  ;; Fuzzy match with the cscope results
   (cscope-call "Finding egrep pattern:" 6 symbol `(cscope-find-egrep-pattern ,symbol))
   )
 
@@ -2715,7 +2715,7 @@ file."
   ;; Try to fuzzy match with the cscope results; this will fail in this case
   ;; however since cscope will not return any particular text here; it will by
   ;; "<unknown>"
-  (setq cscope-last-user-search nil)
+  (setq cscope-fuzzy-search-symbol nil)
   (cscope-call "Finding file:" 7 symbol `(cscope-find-this-file ,symbol))
   )
 
@@ -2727,7 +2727,7 @@ file."
 		  (cscope-prompt-for-symbol
 		   "Find files #including this file: " t nil))
 		))
-  (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
+  (setq cscope-fuzzy-search-symbol symbol)  ;; Fuzzy match with the search input
   (cscope-call "Finding files #including file:" 8 symbol `(cscope-find-files-including-file ,symbol))
   )
 
@@ -2737,7 +2737,7 @@ file."
   (interactive (list
 		(cscope-prompt-for-symbol "Find assignments to this symbol: " nil nil)
 		))
-  (setq cscope-last-user-search symbol)  ;; Fuzzy match with the search input
+  (setq cscope-fuzzy-search-symbol symbol)  ;; Fuzzy match with the search input
   (cscope-call "Finding assignments to symbol:" 9 symbol `(cscope-find-assignments-to-this-symbol ,symbol))
   )
 
