@@ -139,6 +139,12 @@
 ;; the selected file, or you can move the text cursor over a selection
 ;; and press [Enter].
 ;;
+;; The third mouse button is bound to a popup menu for cscope. The
+;; previously-invoked find command is marked in the cscope menu. Shift-mouse
+;; button 3 invokes the last find command again. E.g. if you look for the symbol
+;; 'main' and afterwards you want to look for another symbol, just press Shift
+;; and click the third button.
+;;
 ;; Hopefully, the interface should be fairly intuitive.
 ;;
 ;;
@@ -776,14 +782,6 @@ when creating the list of files and the corresponding cscope database."
   :type 'boolean
   :group 'cscope)
 
-
-(defcustom cscope-no-mouse-prompts nil
-  "*If non-nil, use the symbol under the cursor instead of prompting.
-Do not prompt for a value, except for when seaching for a egrep pattern
-or a file."
-  :type 'boolean
-  :group 'cscope)
-
 (defcustom cscope-indexing-script "cscope-indexer"
   "*The shell script used to create cscope indices."
   :type 'string
@@ -1131,6 +1129,14 @@ directory should begin.")
 
 (defvar cscope-global-keymap
   (let ((map (make-sparse-keymap)))
+
+    (if cscope-running-in-xemacs
+        (progn
+          (define-key map [button3]   'cscope-mouse-popup-menu-or-search)
+          (define-key map [S-button3] 'cscope-mouse-search-again))
+      (define-key map [mouse-3]   'cscope-mouse-popup-menu-or-search)
+      (define-key map [S-mouse-3] 'cscope-mouse-search-again))
+
     ;; The following line corresponds to be beginning of the "Cscope" menu.
     (define-key map "\C-css" 'cscope-find-this-symbol)
     (define-key map "\C-csd" 'cscope-find-global-definition)
@@ -1260,21 +1266,58 @@ directory should begin.")
              (setq cscope-use-relative-paths
                    (not cscope-use-relative-paths))
              :style toggle :selected cscope-use-relative-paths ]
-           [ "No mouse prompts" (setq cscope-no-mouse-prompts
-                                      (not cscope-no-mouse-prompts))
-             :style toggle :selected cscope-no-mouse-prompts ] 
            )
          )))
 
-  (easy-menu-define cscope:menu
+  (easy-menu-define cscope-global-menu
     cscope-global-keymap
     "cscope menu"
     `("Cscope" ,@menu-before ,@menu-only-global ,@menu-after))
 
-  (easy-menu-define cscope:menu
+  (easy-menu-define cscope-buffer-menu
      cscope-list-entry-keymap
     "cscope menu"
     `("Cscope" ,@menu-before ,@menu-only-cscope ,@menu-after)))
+
+
+(defun cscope-mouse-popup-menu-or-search (event)
+  "Pop-up the menu or rerun the last search when double-clicked.
+EVENT is the mouse event."
+  (interactive "e")
+  (mouse-set-point event)
+  (case (event-click-count event)
+    (1 (cscope-popup-menu event))
+    (2 (cscope-run-last-search-noprompt))
+  )
+)
+(defun cscope-mouse-search-again (event)
+  "Run the last search type again on the symbol the user clicked
+on. EVENT is the mouse event."
+  (interactive "e")
+  (mouse-set-point event)
+  (cscope-run-last-search-noprompt))
+
+(defun cscope-popup-menu (event)
+  "Pop up MENU and perform an action if something was selected.
+EVENT is the mouse event."
+  (save-selected-window
+    (select-window (posn-window (event-start event)))
+    (let ((selection (x-popup-menu event cscope-global-menu))
+          binding)
+      (while selection
+	(setq binding (lookup-key (or binding cscope-global-menu) (vector (car selection)))
+	      selection (cdr selection)))
+      (when binding
+        (let (cscope-suppress-user-symbol-prompt)
+          (call-interactively binding))))))
+
+(defun cscope-run-last-search-noprompt ()
+  "Run the last search type off of the symbol at point without
+prompting the user. This is mostly for mouse-initiated searches."
+  (when cscope-previous-user-search
+    (let (cscope-suppress-user-symbol-prompt)
+      (call-interactively (car cscope-previous-user-search)))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Internal functions and variables
@@ -2625,14 +2668,11 @@ file."
   "Prompt the user for a cscope symbol."
   (let ((sym (cscope-extract-symbol-at-cursor extract-filename try-to-use-region)))
     (if (or (not sym)
-	    (string= sym "")
-	    (not (and cscope-running-in-xemacs
-		      cscope-no-mouse-prompts current-mouse-event
-		      (or (mouse-event-p current-mouse-event)
-			  (misc-user-event-p current-mouse-event))))
-	    ;; Always prompt for symbol in dired mode.
-	    (eq major-mode 'dired-mode)
-	    )
+            (string= sym "")
+            (not (boundp 'cscope-suppress-user-symbol-prompt))
+
+            ;; Always prompt for symbol in dired mode.
+            (eq major-mode 'dired-mode))
 	(setq sym (read-from-minibuffer prompt sym))
       sym)
     ))
@@ -2772,7 +2812,8 @@ file."
     (setq cscope-minor-mode (if (null arg) t (car arg)))
     (if cscope-minor-mode
 	(progn
-	  (easy-menu-add cscope:menu cscope-global-keymap)
+	  (easy-menu-add cscope-global-menu cscope-global-keymap)
+	  (easy-menu-add cscope-buffer-menu cscope-list-entry-keymap)
 	  (run-hooks 'cscope-minor-mode-hooks)
 	  ))
     cscope-minor-mode
