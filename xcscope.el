@@ -929,11 +929,20 @@ at the start of a line, so the leading ^ must be omitted")
     (suppress-keymap map)
     ;; The following section does not appear in the "Cscope" menu.
     (if cscope-running-in-xemacs
-        (define-key map [button2] 'cscope-mouse-select-entry-other-window)
-      (define-key map [mouse-2] 'cscope-mouse-select-entry-other-window))
+        (progn
+          (define-key map [button2]   'cscope-mouse-select-entry-other-window)
+          (define-key map [S-button2] 'cscope-mouse-select-entry-inplace))
+      (define-key map [mouse-2]   'cscope-mouse-select-entry-other-window)
+      (define-key map [S-mouse-2] 'cscope-mouse-select-entry-inplace))
+
+    ;; \r is for the text-mode console emacs
     (define-key map [return] 'cscope-select-entry-other-window)
-    ;; \r is for Emacs:
-    (define-key map "\r" 'cscope-select-entry-other-window)
+    (define-key map "\r"     'cscope-select-entry-other-window)
+
+    ;; this works for the graphics emacsen-only. Default xterm on Debian does
+    ;; not know how to see this key combination
+    (define-key map (kbd "<S-return>") 'cscope-select-entry-inplace)
+
     (define-key map " " 'cscope-show-entry-other-window)
     (define-key map "o" 'cscope-select-entry-one-window)
     (define-key map "q" 'cscope-bury-buffer)
@@ -1612,6 +1621,14 @@ Push current point on mark ring and select the entry window."
   (if cscope-close-window-after-select
     (delete-windows-on cscope-output-buffer-name)))
 
+(defun cscope-select-entry-inplace ()
+  "Display the entry in the window currently occupied by the
+*cscope* buffer"
+  (interactive)
+
+  (let ((navprops (cscope-get-navigation-properties))
+	window)
+    (cscope-show-entry-internal navprops t (selected-window))))
 
 (defun cscope-select-entry-one-window ()
   "Display the entry at point in one window, select the window."
@@ -1652,6 +1669,20 @@ Push current point on mark ring and select the entry window."
             (setq window (cscope-show-entry-internal navprops t)))
           (if (windowp window)
               (select-window window)))
+      (message "No entry found at point.")
+      )
+    ))
+
+(defun cscope-mouse-select-entry-inplace (event)
+  "Display the entry over which the mouse event occurred, select the window."
+  (interactive "e")
+  (let ((ep (cscope-event-point event))
+	(win (cscope-event-window event)))
+    (if ep
+        (progn
+          (let ((navprops (cscope-get-navigation-properties ep (window-buffer win))))
+            (select-window win)
+            (cscope-show-entry-internal navprops t win)))
       (message "No entry found at point.")
       )
     ))
