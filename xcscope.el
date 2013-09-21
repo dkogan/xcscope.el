@@ -519,12 +519,8 @@
 ;;            cscope-file-face
 ;;            cscope-function-face
 ;;            cscope-line-number-face
-;;            cscope-line-face
 ;;            cscope-mouse-face
 ;;            cscope-separator-face
-;;
-;;        The face most likely to cause problems (e.g., black-on-black
-;;        color) is `cscope-line-face'.
 ;;
 ;; 3. The support for cscope databases different from that specified by
 ;;    `cscope-database-file' is quirky.  If the file does not exist, it
@@ -889,17 +885,6 @@ at the start of a line, so the leading ^ must be omitted")
     (t (:bold t)))
   "Face used to highlight line number in the *cscope* buffer."
   :group 'cscope)
-
-
-(defface cscope-line-face
-  '((((class color) (background dark))
-     (:foreground "green"))
-    (((class color) (background light))
-     (:foreground "black"))
-    (t (:bold nil)))
-  "Face used to highlight the rest of line in the *cscope* buffer."
-  :group 'cscope)
-
 
 (defface cscope-mouse-face
   '((((class color) (background dark))
@@ -2104,17 +2089,23 @@ the current directory will be used."
   (let* ((fmt (format "%%%ds %%s" cscope-name-line-width))
 	 (str (format fmt (format "%s[%s]" func-name line-number) line))
 	 beg end)
-    (if cscope-use-face
-	(progn
-	  (setq end (length func-name))
-	  (put-text-property 0 end 'face 'cscope-function-face str)
-	  (setq beg (1+ end)
-		end (+ beg (length line-number)))
-	  (put-text-property beg end 'face 'cscope-line-number-face str)
-	  (setq end (length str)
-		beg (- end (length line)))
-	  (put-text-property beg end 'face 'cscope-line-face str)
-	  ))
+
+    (when cscope-use-face
+      (setq end (length func-name))
+      (put-text-property 0 end 'face 'cscope-function-face str)
+      (setq beg (1+ end)
+            end (+ beg (length line-number)))
+      (put-text-property beg end 'face 'cscope-line-number-face str)
+
+      (when (and cscope-fuzzy-search-symbol
+                 (not (string= line "<unknown>")))
+
+        (let* ((case-fold-search nil)
+               (start (string-match cscope-fuzzy-search-symbol str beg)))
+          (when start
+            (let ((end (+ start (length cscope-fuzzy-search-symbol))))
+              (put-text-property start end 'face 'bold str))
+            ))))
     str))
 
 
@@ -2413,7 +2404,10 @@ this is."
             (or cscope-initial-directory
                 (and (eq outbuf old-buffer)
                      (get-text-property (point) 'cscope-directory)))))
-          (msg (concat basemsg " " symbol))
+          (msg (concat basemsg " "
+                       (if cscope-use-face
+                           (propertize symbol 'face 'bold)
+                         symbol)))
           (args (list (format "-%d" search-id) symbol)))
     (if cscope-process
 	(error "A cscope search is still in progress -- only one at a time is allowed"))
