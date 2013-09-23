@@ -1971,6 +1971,16 @@ overrides the current directory, which would otherwise be used."
   (kill-buffer cscope-output-buffer-name)
   )
 
+
+(defun cscope-boldify-if-needed (&rest args)
+  "Returns a string in a bold face that's a concatenation of ARGS.
+This is done if 'cscope-use-face' is non-nil. Otherwise a plain
+concatenation of ARGS is returned"
+  (let ((str (apply 'concat args)))
+    (if cscope-use-face
+        (propertize str 'face 'bold)
+      str)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun cscope-canonicalize-directory (dir)
@@ -2372,11 +2382,13 @@ using the mouse."
 
 ;; is this require for multiple databases?
 	;; (goto-char (point-max))
-
-	(if (string= base-database-file-name cscope-database-file)
-	    (insert "\nDatabase directory: " cscope-directory "\n\n")
-	  (insert "\nDatabase directory/file: "
-		  cscope-directory base-database-file-name "\n\n"))
+        (if (string= base-database-file-name cscope-database-file)
+            (insert "\nDatabase directory: "
+                    (cscope-boldify-if-needed cscope-directory)
+                    "\n\n")
+          (insert "\nDatabase directory/file: "
+		  (cscope-boldify-if-needed cscope-directory base-database-file-name)
+                  "\n\n"))
 	;; Add the correct database file to search
 	(setq options (cons base-database-file-name options))
 	(setq options (cons "-f" options))
@@ -2399,7 +2411,6 @@ using the mouse."
 	))
     ))
 
-
 (defun cscope-call (basemsg search-id symbol)
   "Generic function to call to process cscope requests.
 BASEMSG is a message describing this search; SEARCH-ID is a
@@ -2416,9 +2427,7 @@ this is."
                 (and (eq outbuf old-buffer)
                      (get-text-property (point) 'cscope-directory)))))
           (msg (concat basemsg " "
-                       (if cscope-use-face
-                           (propertize symbol 'face 'bold)
-                         symbol)))
+                       (cscope-boldify-if-needed symbol)))
           (args (list (format "-%d" search-id) symbol)))
     (if cscope-process
 	(error "A cscope search is still in progress -- only one at a time is allowed"))
