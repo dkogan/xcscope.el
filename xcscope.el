@@ -1908,20 +1908,20 @@ modified in-place"
 
   ;; move to where we were after the search is done??
   (let ((beg-end (cscope-get-history-bounds-this-result 'result)))
-    (if beg-end
-        (let* ((beg (elt beg-end 0))
-               (end (elt beg-end 1))
-               (search (get-text-property beg 'cscope-stored-search))
+    (unless beg-end (error "No result at point"))
 
-               ;; try to rerun the search in the same directory as before
-               (cscope-initial-directory (or cscope-initial-directory
-                                             (get-text-property beg 'cscope-directory)))
-               cscope-rerunning-search ;; this is bound here to tell cscope-call to not move the point
-               )
-          (delete-region beg end)
-          (goto-char beg)
-          (eval search))
-      (error "No result at point"))))
+    (let* ((beg (elt beg-end 0))
+           (end (elt beg-end 1))
+           (search (get-text-property beg 'cscope-stored-search))
+
+           ;; try to rerun the search in the same directory as before
+           (cscope-initial-directory (or cscope-initial-directory
+                                         (get-text-property beg 'cscope-directory)))
+           cscope-rerunning-search ;; this is bound here to tell cscope-call to not move the point
+           )
+      (delete-region beg end)
+      (goto-char beg)
+      (eval search))))
 
 (defun cscope-set-initial-directory (cs-id)
   "Set the cscope-initial-directory variable.  The
