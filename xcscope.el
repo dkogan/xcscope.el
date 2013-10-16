@@ -909,6 +909,11 @@ at the start of a line, so the leading ^ must be omitted")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defconst cscope-running-in-xemacs (string-match "XEmacs\\|Lucid" emacs-version))
 
+(defconst cscope-start-file-process (if cscope-running-in-xemacs 'start-process 'start-file-process)
+  "The function used to launch external processes. Xemacs doesn't
+have full TRAMP support here, so the less featureful function is
+selected for it")
+
 (defvar cscope-list-entry-keymap
   (let ((map (make-keymap)))
     (suppress-keymap map)
@@ -916,7 +921,7 @@ at the start of a line, so the leading ^ must be omitted")
     (if cscope-running-in-xemacs
         (progn
           (define-key map [button2]   'cscope-mouse-select-entry-other-window)
-          (define-key map [S-button2] 'cscope-mouse-select-entry-inplace))
+          (define-key map [(shift button2)] 'cscope-mouse-select-entry-inplace))
       (define-key map [mouse-2]   'cscope-mouse-select-entry-other-window)
       (define-key map [S-mouse-2] 'cscope-mouse-select-entry-inplace))
 
@@ -1109,7 +1114,7 @@ directory should begin.")
     (if cscope-running-in-xemacs
         (progn
           (define-key map [button3]   'cscope-mouse-popup-menu-or-search)
-          (define-key map [S-button3] 'cscope-mouse-search-again))
+          (define-key map [(shift button3)] 'cscope-mouse-search-again))
       (define-key map [mouse-3]   'cscope-mouse-popup-menu-or-search)
       (define-key map [S-mouse-3] 'cscope-mouse-search-again))
 
@@ -2399,7 +2404,7 @@ using the mouse."
               cscope-last-file nil
               )
         (setq cscope-process
-              (apply 'start-file-process "cscope" outbuf
+              (apply cscope-start-file-process "cscope" outbuf
                      cscope-program options))
         (set-process-filter cscope-process 'cscope-process-filter)
         (set-process-sentinel cscope-process 'cscope-process-sentinel)
@@ -2538,7 +2543,7 @@ this is."
         (setq args (cons "-r" args)))
     (setq cscope-unix-index-process
           (let ((default-directory top-directory))
-            (apply 'start-file-process "cscope-indexer"
+            (apply cscope-start-file-process "cscope-indexer"
                    nil
                    cscope-indexing-script args)))
     (set-process-filter cscope-unix-index-process 'cscope-unix-index-files-filter)
