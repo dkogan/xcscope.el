@@ -45,6 +45,7 @@
 ;;         Where does the message "out of space" come from?
 ;;         Where is this source file in the directory structure?
 ;;         What files include this header file?
+;;         Where was this variable assigned-to?
 ;;
 ;; Send comments to dima@secretsauce.net
 ;;
@@ -139,13 +140,27 @@
 ;; the selected file, or you can move the text cursor over a selection
 ;; and press [Enter].
 ;;
-;; The third mouse button is bound to a popup menu for cscope. The
-;; previously-invoked find command is marked in the cscope menu. Shift-mouse
+;; The third mouse button is bound to a popup menu for cscope. Shift-mouse
 ;; button 3 invokes the last find command again. E.g. if you look for the symbol
 ;; 'main' and afterwards you want to look for another symbol, just press Shift
 ;; and click the third button.
 ;;
-;; Hopefully, the interface should be fairly intuitive.
+;; Each cscope search adds its results to the *cscope* buffer. These sets of
+;; results can be navigated and manupulated similar to patches in diff-mode.:
+;;
+;;  - n/p navigates over individual results
+;;  - k kills individual results
+;;
+;;  - N/P or M-n/M-p navigates over file results
+;;  - M-k kills file results
+;;
+;;  - M-N/M-P navigates over result sets
+;;  - M-K kills result sets
+;;
+;;  - Navigation from outside the *cscope* buffer (C-c s n/p/N/P) is restricted to
+;;    the result set at (point)
+;;
+;; Any result set in the *cscope* buffer can be re-run with the 'r' key.
 ;;
 ;;
 ;; * Locating the cscope databases:
@@ -503,26 +518,7 @@
 ;;
 ;; 1. Cannot handle whitespace in directory or file names.
 ;;
-;; 2. By default, colored faces are used to display results.  If you happen
-;;    to use a black background, part of the results may be invisible
-;;    (because the foreground color may be black, too).  There are at least
-;;    two solutions for this:
-;;
-;;    2a. Turn off colored faces, by setting `cscope-use-face' to `nil',
-;;        e.g.:
-;;
-;;            (setq cscope-use-face nil)
-;;
-;;    2b. Explicitly set colors for the faces used by cscope.  The faces
-;;        are:
-;;
-;;            cscope-file-face
-;;            cscope-function-face
-;;            cscope-line-number-face
-;;            cscope-mouse-face
-;;            cscope-separator-face
-;;
-;; 3. The support for cscope databases different from that specified by
+;; 2. The support for cscope databases different from that specified by
 ;;    `cscope-database-file' is quirky.  If the file does not exist, it
 ;;    will not be auto-created (unlike files names by
 ;;    `cscope-database-file').  You can manually force the file to be
