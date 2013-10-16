@@ -1276,11 +1276,11 @@ directory should begin.")
 EVENT is the mouse event."
   (interactive "e")
   (mouse-set-point event)
-  (case (event-click-count event)
-    (1 (cscope-popup-menu event))
-    (2 (cscope-run-last-search-noprompt))
-  )
-)
+  (let ((click-count (event-click-count event)))
+    (cond
+     ((eq click-count 1) (cscope-popup-menu event))
+     ((eq click-count 2) (cscope-run-last-search-noprompt)))))
+
 (defun cscope-mouse-search-again (event)
   "Run the last search type again on the symbol the user clicked
 on. EVENT is the mouse event."
