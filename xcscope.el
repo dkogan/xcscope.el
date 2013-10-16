@@ -1017,6 +1017,13 @@ selected for it")
   "A buffer for holding partial cscope process output.")
 (make-variable-buffer-local 'cscope-process-output)
 
+(defvar cscope-last-output-point nil
+  "Location of the last output from the process filter. Normally
+this is equivalent to (process-mark cscope-process), but this is
+broken in xemacs in the sentinel after the process has
+terminated. Also, this is (point-max) unless we're re-running a
+search in the middle of the *cscope* buffer")
+
 
 (defvar cscope-command-args nil
   "Internal variable for holding major command args to pass to cscope.")
@@ -2143,7 +2150,7 @@ using the mouse."
     (with-current-buffer (process-buffer process)
       (let (line file function-name line-number)
         (save-excursion
-          (goto-char (process-mark process))
+          (goto-char cscope-last-output-point)
           ;; Get the output thus far ...
           (if cscope-process-output
               (setq cscope-process-output (concat cscope-process-output
@@ -2220,8 +2227,7 @@ using the mouse."
                     ))
               (insert line "\n")
               ))
-          (set-marker (process-mark process) (point))
-          )
+          (setq cscope-last-output-point (point)))
         (set-buffer-modified-p nil)))))
 
 
@@ -2235,7 +2241,7 @@ using the mouse."
     (with-current-buffer buffer
       (let (continue)
         (save-excursion
-          (goto-char (process-mark process))
+          (goto-char cscope-last-output-point)
 
           (if (or (and (setq window (get-buffer-window buffer))
                        (= (window-point window) (point-max)))
@@ -2408,7 +2414,7 @@ using the mouse."
                      cscope-program options))
         (set-process-filter cscope-process 'cscope-process-filter)
         (set-process-sentinel cscope-process 'cscope-process-sentinel)
-        (set-marker (process-mark cscope-process) (point))
+        (setq cscope-last-output-point (point))
         (process-kill-without-query cscope-process)
         (if cscope-running-in-xemacs
             (setq modeline-process ": Searching ..."))
