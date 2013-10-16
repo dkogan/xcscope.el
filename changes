@@ -1,0 +1,46 @@
+The feature changelog:
+
+- New searches are appended to the *cscope* buffer, instead of overwriting. The
+  user thus sees a history of cscope search results in this buffer, and is able
+  to navigate through all fo them. There is a size limit to keep the buffer from
+  growing out of control.
+
+- The *cscope* buffer can be navigated and edited similarly to emacs Diff buffers:
+
+  - n/p navigates over individual results
+  - k kills individual results
+
+  - N/P or M-n/M-p navigates over file results
+  - M-k kills file results
+
+  - M-N/M-P navigates over result sets
+  - M-K kills result sets
+
+  - Navigation from outside the *cscope* buffer (C-c s n/p/N/P) is restricted to
+    the result set at (point)
+
+- Previous searches can be re-run with the 'r' key in the *cscope* buffer. These
+  are written in-place, overwriting the older results.
+
+- Fuzzy matching is now enabled/disabled for specific types of searches. This
+  was implemented earlier, but the implementation had a bug and wasn't working
+
+- xcscope.el can now work remotely over TRAMP
+
+- The cscope-index output now goes to the echo area instead of an explicit new
+  buffer that the user must deal with
+
+- Fuzzy searching now works for non-trivial regex searches
+
+- The mouse face respects cscope-use-face
+
+- Better mouse support:
+  - button3 opens a popup menu that runs prompt-less searches
+  - shift-button3 reruns the last search on the point. This is thus even more
+    prompt-less
+
+- Shift-return or Shift-mouse2 now open the result in the same window as the
+  *cscope* buffer
+
+- Some bold highlighting in the *cscope* rsults: the sought term, the search
+  directory
