@@ -991,6 +991,7 @@ selected for it")
 
 \\{cscope-list-entry-keymap}"
   (use-local-map cscope-list-entry-keymap)
+  (easy-menu-add cscope-buffer-menu cscope-list-entry-keymap)
   (setq mode-name "cscope"
 	major-mode 'cscope-list-entry-mode
 	overlay-arrow-string cscope-overlay-arrow-string)
@@ -2856,7 +2857,6 @@ file."
     (if cscope-minor-mode
 	(progn
 	  (easy-menu-add cscope-global-menu cscope-global-keymap)
-	  (easy-menu-add cscope-buffer-menu cscope-list-entry-keymap)
 	  (run-hooks 'cscope-minor-mode-hooks)
 	  ))
     cscope-minor-mode
