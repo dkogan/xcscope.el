@@ -1119,9 +1119,11 @@ directory should begin.")
 (defvar cscope-global-keymap
   (let ((map (make-sparse-keymap)))
 
+    ;; xemacs has various issues with (cscope-mouse-popup-menu-or-search), so I
+    ;; don't use that function for xemacs. Its popup menu support won't be as
+    ;; good (cscope will still prompt for the search term)
     (if cscope-running-in-xemacs
         (progn
-          (define-key map [button3]   'cscope-mouse-popup-menu-or-search)
           (define-key map [(shift button3)] 'cscope-mouse-search-again))
       (define-key map [mouse-3]   'cscope-mouse-popup-menu-or-search)
       (define-key map [S-mouse-3] 'cscope-mouse-search-again))
