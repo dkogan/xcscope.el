@@ -55,39 +55,19 @@
 ;;
 ;; * NOTE: this interface currently runs under Unix only.
 ;;
-;; This module needs a shell script called "cscope-indexer", which
-;; should have been supplied along with this emacs-lisp file.  The
-;; purpose of "cscope-indexer" is to create and optionally maintain
-;; the cscope databases.  If all of your source files are in one
-;; directory, you don't need this script; it's very nice to have,
-;; though, as it handles recursive subdirectory indexing, and can be
-;; used in a nightly or weekly cron job to index very large source
-;; repositories.  See the beginning of the file, "cscope-indexer", for
-;; usage information.
-;;
 ;; Installation steps:
 ;;
 ;; 0. (It is, of course, assumed that cscope is already properly
 ;;    installed on the current system.)
 ;;
-;; 1. Install the "cscope-indexer" script into some convenient
-;;    directory in $PATH.  The only real constraint is that (X)Emacs
-;;    must be able to find and execute it.  You may also have to edit
-;;    the value of PATH in the script, although this is unlikely; the
-;;    majority of people should be able to use the script, "as-is".
-;;
-;; 2. Make sure that the "cscope-indexer" script is executable.  In
-;;    particular, if you had to ftp this file, it is probably no
-;;    longer executable.
-;;
-;; 3. Put this emacs-lisp file somewhere where (X)Emacs can find it.  It
+;; 1. Put this emacs-lisp file somewhere where (X)Emacs can find it.  It
 ;;    basically has to be in some directory listed in "load-path".
 ;;
-;; 4. Edit your ~/.emacs file to add the line:
+;; 2. Edit your ~/.emacs file to add the line:
 ;;
 ;;      (require 'xcscope)
 ;;
-;; 5. If you intend to use xcscope.el often you can optionally edit your
+;; 3. If you intend to use xcscope.el often you can optionally edit your
 ;;    ~/.emacs file to add keybindings that reduce the number of keystrokes
 ;;    required.  For example, the following will add "C-f#" keybindings, which
 ;;    are easier to type than the usual "C-c s" prefixed keybindings.  Note
@@ -269,9 +249,6 @@
 ;; If the source files are spread out over multiple directories,
 ;; you've got a few choices:
 ;;
-;; [ NOTE: you will need to have the script, "cscope-indexer",
-;;   properly installed in order for the following to work.  ]
-;;
 ;; 1. If all of the directories exist below a common directory
 ;;    (without any extraneous, unrelated subdirectories), you can tell
 ;;    this module to place the cscope database into the top-level,
@@ -290,11 +267,11 @@
 ;;       checked (the default value).
 ;;
 ;;    b. Select the menu pick, "Cscope/Create list and index", and
-;;       specify the top-level directory.  This will run the script,
-;;       "cscope-indexer", in the background, so you can do other
-;;       things if indexing takes a long time.  A list of files to
-;;       index will be created in "cscope.files", and the cscope
-;;       database will be created in "cscope.out".
+;;       specify the top-level directory. This will index the sources
+;;       in the background, so you can do other things if indexing
+;;       takes a long time. A list of files to index will be created in
+;;       "cscope.files", and the cscope database will be created in
+;;       "cscope.out".
 ;;
 ;;    Once this has been done, you can then use the menu picks
 ;;    (described in "Basic usage", above) to search for symbols.
@@ -506,11 +483,7 @@
 ;;
 ;; * Other notes:
 ;;
-;; 1. The script, "cscope-indexer", uses a sed command to determine
-;;    what is and is not a C/C++/lex/yacc source file.  It's idea of a
-;;    source file may not correspond to yours.
-;;
-;; 2. This module is called, "xcscope", because someone else has
+;; 1. This module is called, "xcscope", because someone else has
 ;;    already written a "cscope.el" (although it's quite old).
 ;;
 ;;
@@ -774,11 +747,33 @@ when creating the list of files and the corresponding cscope database."
   :type 'boolean
   :group 'cscope)
 
-(defcustom cscope-indexing-script "cscope-indexer"
-  "*The shell script used to create cscope indices."
-  :type 'string
+(defcustom cscope-indexer-ignored-directories '("CVS"
+                                                "RCS"
+                                                "SCCS"
+                                                ".git"
+                                                ".hg"
+                                                ".bzr"
+                                                ".cdv"
+                                                ".pc"
+                                                ".svn"
+                                                "_MTN"
+                                                "_darcs"
+                                                "_sgbak"
+                                                "debian")
+  "List of directory names that should be ignored when building a
+cscope index. These are mostly version-control directories"
+  :type '(repeat string)
   :group 'cscope)
 
+(defcustom cscope-indexer-suffixes '("*.[chly]"
+                                     "*.[ch]xx"
+                                     "*.[ch]pp"
+                                     "*.cc"
+                                     "*.hh")
+  "List of file suffixes to index. By default these are C, C++,
+Lex and Yacc source. These are globs accepted by 'find -iname'"
+  :type '(repeat string)
+  :group 'cscope)
 
 (defcustom cscope-symbol-chars "A-Za-z0-9_"
   "*A string containing legal characters in a symbol.
@@ -2530,33 +2525,82 @@ this is."
   (setq cscope-unix-index-process nil)
   (setq cscope-indexing-status-string nil))
 
+(defun cscope-make-index-command (dir only-create-list-of-files)
+  "Return a string that is a shell script that runs the cscope
+indexer"
 
-(defun cscope-unix-index-files-internal (top-directory header-text args)
+  (let ((findargs
+
+          ;; This is really ugly. GNU emacs has find-cmd.el to make things just like
+          ;; this less ugly, but I want to support xemacs too, and thus I just live with
+          ;; the uglyness
+          (mapcar 'shell-quote-argument
+                  `(,dir
+
+                    ;; limit the search depth if we're not searching recursively
+                    ,@(when (not cscope-index-recursively)
+                        '("-maxdepth" "1"))
+
+                    ;; apply -prune to any directory we're supposed to ignore
+                    "(" "-type" "d" "("
+                    ,@(apply 'append (mapcar (lambda (dir) (list "-name" dir "-o") )
+                                             cscope-indexer-ignored-directories))
+                    "-false"
+                    ")" "-prune" ")" "-o"
+
+                    ;; accept only files that match the patterns we want
+                    "("
+                    ,@(apply 'append (mapcar (lambda (suffix) (list "-iname" suffix "-o"))
+                                             cscope-indexer-suffixes))
+                    "-false"
+                    ")"
+
+                    ;; accept files and symlinks
+                    "(" "-type" "f" "-o" "-type" "l" ")"
+
+                    ;; if we made it here, take the result
+                    "-print"))))
+
+    (let ((findcmds
+           (concat "echo 'Creating list of files to index ...'\n"
+
+                   "find "
+                   (mapconcat 'identity findargs " ") " > "
+                   (shell-quote-argument cscope-index-file) "\n"
+
+                   "echo 'Creating list of files to index ... done'\n"))
+
+          (indexcmds
+           (concat "echo 'Indexing files ...'\n"
+
+                   (shell-quote-argument cscope-program) " -b -i "
+                   (shell-quote-argument cscope-index-file)
+                   " -f " (shell-quote-argument cscope-database-file) "\n"
+
+                   "echo 'Indexing files ... done'\n")))
+
+      (if only-create-list-of-files
+          findcmds
+        (concat findcmds indexcmds)))))
+
+(defun cscope-unix-index-files-internal (top-directory header-text only-create-list-of-files)
   "Core function to call the indexing script."
   (save-excursion
-    (setq top-directory (cscope-canonicalize-directory top-directory))
     (setq cscope-indexing-status-string
           (or header-text ""))
-
-    (setq args (append args
-                       (list "-v"
-                             "-i" cscope-index-file
-                             "-f" cscope-database-file
-                             (if cscope-use-relative-paths
-                                 "." top-directory))))
-    (if cscope-index-recursively
-        (setq args (cons "-r" args)))
     (setq cscope-unix-index-process
-          (let ((default-directory top-directory))
-            (apply cscope-start-file-process "cscope-indexer"
+          (let* ((default-directory (cscope-canonicalize-directory top-directory))
+                 (index-command
+                  (cscope-make-index-command (if cscope-use-relative-paths
+                                                 "." default-directory)
+                                             only-create-list-of-files)))
+            (funcall cscope-start-file-process "cscope-indexer"
                    nil
-                   cscope-indexing-script args)))
+                   "sh" "-c" index-command)))
     (set-process-filter cscope-unix-index-process 'cscope-unix-index-files-filter)
     (set-process-sentinel cscope-unix-index-process
                           'cscope-unix-index-files-sentinel)
-    (process-kill-without-query cscope-unix-index-process)
-    )
-  )
+    (process-kill-without-query cscope-unix-index-process)))
 
 
 (defun cscope-index-files (top-directory)
@@ -2585,7 +2629,7 @@ subdirectories are indexed."
      top-directory
      (format "Creating cscope file list `%s' in:\n\t%s\n\n"
 	     cscope-index-file top-directory)
-     '("-l"))
+     t)
     ))
 
 
