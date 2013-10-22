@@ -2363,15 +2363,17 @@ using the mouse."
 	  )
 	(if (not done)
 	    (throw 'finished nil))
-	(if (cadr next-item)
-	    (let (newopts)
-	      (setq newopts (cadr next-item))
-	      (if (not (listp newopts))
+
+	(when (cadr next-item)
+	    (let ((newopts (cadr next-item)))
+	      (unless (listp newopts)
 		  (error (format "Cscope options must be a list: %s" newopts)))
-	      (setq options (append options newopts))
-	      ))
+	      (setq options (append options newopts))))
 	(if cscope-command-args
-	    (setq options (append options cscope-command-args)))
+	    (setq options (append options cscope-command-args))
+          (error "Tried to do a search without 'cscope-command-args' set. Something is wrong..."))
+
+
 	(setq database-file (concat cscope-directory base-database-file-name)
 	      cscope-searched-dirs (cons cscope-directory
 					 cscope-searched-dirs)
