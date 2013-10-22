@@ -2262,8 +2262,8 @@ using the mouse."
             (if cscope-display-times
                 (let ( (times (current-time)) cscope-stop elapsed-time )
                   (setq cscope-stop (+ (* (car times) 65536.0)
-                                       (car (cdr times))
-                                       (* (car (cdr (cdr times))) 1.0E-6)))
+                                       (cadr times)
+                                       (* (cadr (cdr times)) 1.0E-6)))
                   (setq elapsed-time (- cscope-stop cscope-start-time))
                   (insert (format "  Search time = %.2f seconds."
                                   elapsed-time))
@@ -2363,9 +2363,9 @@ using the mouse."
 	  )
 	(if (not done)
 	    (throw 'finished nil))
-	(if (car (cdr next-item))
+	(if (cadr next-item)
 	    (let (newopts)
-	      (setq newopts (car (cdr next-item)))
+	      (setq newopts (cadr next-item))
 	      (if (not (listp newopts))
 		  (error (format "Cscope options must be a list: %s" newopts)))
 	      (setq options (append options newopts))
@@ -2457,8 +2457,8 @@ this is."
       (set-buffer outbuf)
       (if cscope-display-times
 	  (let ( (times (current-time)) )
-	    (setq cscope-start-time (+ (* (car times) 65536.0) (car (cdr times))
-				       (* (car (cdr (cdr times))) 1.0E-6)))))
+	    (setq cscope-start-time (+ (* (car times) 65536.0) (cadr times)
+				       (* (cadr (cdr times)) 1.0E-6)))))
       (setq default-directory directory
 	    cscope-start-directory nil
 	    cscope-search-list (cscope-find-info directory)
