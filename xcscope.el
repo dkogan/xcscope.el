@@ -521,6 +521,33 @@ It is designed to answer questions like:
   :group 'tools)
 
 
+(defcustom cscope-option-include-directories nil
+  "The -I option in cscope: add these directories to the list of
+search paths for #include, similar to the -I gcc option"
+  :type '(repeat directory))
+
+(defcustom cscope-option-disable-compression nil
+  "The -c option in cscope: use an uncompressed, ASCII database"
+  :type 'boolean)
+
+(defcustom cscope-option-kernel-mode nil
+  "The -k option in cscope: use no system-wide include paths.
+Useful for self-contained codebases, such as a kernel"
+  :type 'boolean)
+
+(defcustom cscope-option-use-inverted-index nil
+  "The -q option in cscope: use an inverted database index. Takes
+longer to build, but results in faster lookups. Useful for very
+large codebases"
+  :type 'boolean)
+
+(defcustom cscope-option-other nil
+  "Any indexing/lookup options to pass to cscope. These are used
+both when building the database and when searching. Note that the
+most common options have specific customization in the
+cscope-option-* variables, and it is preferable to use those"
+  :type '(repeat string))
+
 (defcustom cscope-do-not-update-database nil
   "*If non-nil, never check and/or update the cscope database when searching.
 Beware of setting this to non-nil, as this will disable automatic database
@@ -1997,6 +2024,15 @@ concatenation of ARGS is returned"
   dir
   )
 
+(defun cscope-construct-custom-options-list ()
+  "Returns a list of cscope options defined by the
+cscope-option-* variables"
+  (append
+   (mapcar (lambda (dir) (concat "-I" dir)) cscope-option-include-directories)
+   (when cscope-option-disable-compression '("-c"))
+   (when cscope-option-kernel-mode '("-k"))
+   (when cscope-option-use-inverted-index '("-q"))
+   cscope-option-other))
 
 (defun cscope-search-directory-hierarchy (directory)
   "Look for a cscope database in the directory hierarchy.
@@ -2410,7 +2446,8 @@ using the mouse."
               ;; a TTY
               (let ((process-connection-type nil))
                 (apply cscope-start-file-process "cscope" outbuf
-                       cscope-program options)))
+                       (shell-quote-argument cscope-program)
+                       (append (cscope-construct-custom-options-list) options))))
         (set-process-filter cscope-process 'cscope-process-filter)
         (set-process-sentinel cscope-process 'cscope-process-sentinel)
         (setq cscope-last-output-point (point))
@@ -2590,7 +2627,12 @@ indexer"
           (indexcmds
            (concat "echo 'Indexing files ...'\n"
 
-                   (shell-quote-argument cscope-program) " -b -i "
+                   (shell-quote-argument cscope-program)
+                   " "
+                   (mapconcat 'shell-quote-argument
+                              (cscope-construct-custom-options-list)
+                              " ")
+                   " -b -i "
                    (shell-quote-argument cscope-index-file)
                    " -f " (shell-quote-argument cscope-database-file) "\n"
 
