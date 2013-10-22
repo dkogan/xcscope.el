@@ -42,5 +42,10 @@ The feature changelog:
 - Shift-return or Shift-mouse2 now open the result in the same window as the
   *cscope* buffer
 
-- Some bold highlighting in the *cscope* rsults: the sought term, the search
+- Some bold highlighting in the *cscope* results: the sought term, the search
   directory
+
+- Removed the external cscope-indexer script; this is now handled inside
+  xcscope.el. Additionally the list of source directories to ignore and the list
+  of filename extensions to index are now customizable in the emacs
+  customization interface
