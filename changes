@@ -49,3 +49,6 @@ The feature changelog:
   xcscope.el. Additionally the list of source directories to ignore and the list
   of filename extensions to index are now customizable in the emacs
   customization interface
+
+- Various cscope options (kernel mode, inverted index, etc) can now be accessed
+  through the emacs variables
