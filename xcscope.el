@@ -2499,6 +2499,18 @@ this is."
   "The string returned by the indexer. This receives the indexer
   output as it comes over time")
 
+(defun cscope-display-message-or-buffer (message buffer)
+  "Calls `display-message-or-buffer' in GNU emacs. In xemacs this
+isn't available, so it simply displays the MESSAGE in the BUFFER"
+
+  (if (not cscope-running-in-xemacs) (display-message-or-buffer message buffer)
+    (with-current-buffer (get-buffer-create buffer)
+      (erase-buffer)
+      (insert message)
+      (goto-char (point-min))
+      (display-buffer (current-buffer)))))
+
+
 (defun cscope-unix-index-files-filter (process output)
   "Called when the indexing process says 'output'. I pop up a
   message in a buffer or the echo area"
@@ -2508,7 +2520,7 @@ this is."
         (concat cscope-indexing-status-string output))
 
   ;; and display
-  (display-message-or-buffer cscope-indexing-status-string "*cscope-indexing-buffer*"))
+  (cscope-display-message-or-buffer cscope-indexing-status-string "*cscope-indexing-buffer*"))
 
 (defun cscope-unix-index-files-sentinel (process event)
   "Simple sentinel to print a message saying that indexing is finished."
@@ -2520,7 +2532,7 @@ this is."
                     "Indexing finished\n"
                   (concat "Indexing process received signal: " event "Stopping indexing"))))
 
-  (display-message-or-buffer cscope-indexing-status-string "*cscope-indexing-buffer*")
+  (cscope-display-message-or-buffer cscope-indexing-status-string "*cscope-indexing-buffer*")
   (delete-process process)
   (setq cscope-unix-index-process nil)
   (setq cscope-indexing-status-string nil))
