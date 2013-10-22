@@ -2404,8 +2404,11 @@ using the mouse."
               cscope-last-file nil
               )
         (setq cscope-process
-              (apply cscope-start-file-process "cscope" outbuf
-                     cscope-program options))
+              ;; Communicate with a pipe. Slightly more efficient than
+              ;; a TTY
+              (let ((process-connection-type nil))
+                (apply cscope-start-file-process "cscope" outbuf
+                       cscope-program options)))
         (set-process-filter cscope-process 'cscope-process-filter)
         (set-process-sentinel cscope-process 'cscope-process-sentinel)
         (setq cscope-last-output-point (point))
@@ -2606,9 +2609,12 @@ indexer"
                   (cscope-make-index-command (if cscope-use-relative-paths
                                                  "." default-directory)
                                              only-create-list-of-files)))
-            (funcall cscope-start-file-process "cscope-indexer"
-                   nil
-                   "sh" "-c" index-command)))
+            ;; Communicate with a pipe. Slightly more efficient than
+            ;; a TTY
+            (let ((process-connection-type nil))
+              (funcall cscope-start-file-process "cscope-indexer"
+                       nil
+                       "sh" "-c" index-command))))
     (set-process-filter cscope-unix-index-process 'cscope-unix-index-files-filter)
     (set-process-sentinel cscope-unix-index-process
                           'cscope-unix-index-files-sentinel)
