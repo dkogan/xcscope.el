@@ -1,19 +1,20 @@
-; -*-Emacs-Lisp-*-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;
-; Description:                        cscope interface for (X)Emacs
-; Original author:                    Darryl Okahata,
-; Author of new features, Maintainer: Dima Kogan
-;
-; (C) Copyright 2000, 2001, 2002, Darryl Okahata <darrylo@sonic.net>,
-;     all rights reserved.
-; (C) Copyright 2013 Dima Kogan <dima@secretsauce.net>
-; GNU Emacs enhancements (C) Copyright 2001,
-;         Triet H. Lai <thlai@mail.usyd.edu.au>
-; Fuzzy matching and navigation code (C) Copyright 2001,
-;         Steven Elliott <selliott4@austin.rr.com>
-;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; xcscope.el --- cscope interface for (X)Emacs
+
+;; Copyright (C) 2000-2002 Darryl Okahata
+;;               2001 Triet H. Lai
+;;               2001 Steven Elliott
+;;               2013 Dima Kogan
+
+;; Author: Darryl Okahata <darrylo@sonic.net>
+;;         Dima Kogan <dima@secretsauce.net>
+;; Maintainer: Dima Kogan <dima@secretsauce.net>
+;; Keywords: languages c
+;; Homepage: http://example.com/foo
+;; Package-Version: 000
+;; Package-Requires: easymenu
+
+;; This file is not part of GNU Emacs.
+
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -29,7 +30,8 @@
 ;; along with GNU Emacs; see the file COPYING.  If not, write to
 ;; the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Commentary:
 ;;
 ;; This is a cscope interface for (X)Emacs.
 ;; It currently runs under Unix only.
@@ -49,7 +51,7 @@
 ;;
 ;; Send comments to dima@secretsauce.net
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
 ;;
 ;; ***** INSTALLATION *****
 ;;
@@ -91,7 +93,7 @@
 ;; 6. Restart (X)Emacs.  That's it.
 ;;
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
 ;;
 ;; ***** USING THIS MODULE *****
 ;;
@@ -498,7 +500,7 @@
 ;;    created by using touch(1) to create a zero-length file; the
 ;;    database will be created the next time a search is done.
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Code:
 
 (require 'easymenu)
 
@@ -2983,3 +2985,5 @@ file."
 (add-hook 'dired-mode-hook (function cscope:hook))
 
 (provide 'xcscope)
+
+;;; xcscope.el ends here
