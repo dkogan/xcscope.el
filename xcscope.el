@@ -9,8 +9,8 @@
 ;;         Dima Kogan <dima@secretsauce.net>
 ;; Maintainer: Dima Kogan <dima@secretsauce.net>
 ;; Keywords: languages c
-;; Homepage: http://example.com/foo
-;; Package-Version: 000
+;; Homepage: https://github.com/dkogan/xcscope.el
+;; Package-Version: 1.0
 ;; Package-Requires: easymenu
 
 ;; This file is not part of GNU Emacs.
