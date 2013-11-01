@@ -2515,20 +2515,19 @@ this is."
 	  ;; was launched from.
 	  (setq cscope-marker-window (get-buffer-window old-buffer))
       (setq cscope-marker (point-marker)))
-    (save-excursion
-      (set-buffer outbuf)
+    (with-current-buffer outbuf
       (if cscope-display-times
-	  (let ( (times (current-time)) )
-	    (setq cscope-start-time (+ (* (car times) 65536.0) (cadr times)
-				       (* (cadr (cdr times)) 1.0E-6)))))
+          (let ( (times (current-time)) )
+            (setq cscope-start-time (+ (* (car times) 65536.0) (cadr times)
+                                       (* (cadr (cdr times)) 1.0E-6)))))
       (setq default-directory directory
-	    cscope-start-directory nil
-	    cscope-search-list (cscope-find-info directory)
-	    cscope-searched-dirs nil
-	    cscope-command-args args
-	    cscope-first-match-point nil
-	    cscope-stop-at-first-match-dir-meta (memq t cscope-search-list)
-	    cscope-matched-multiple nil)
+            cscope-start-directory nil
+            cscope-search-list (cscope-find-info directory)
+            cscope-searched-dirs nil
+            cscope-command-args args
+            cscope-first-match-point nil
+            cscope-stop-at-first-match-dir-meta (memq t cscope-search-list)
+            cscope-matched-multiple nil)
       (setq truncate-lines cscope-truncate-lines)
 
       ;; insert the separator at the start of the result set
@@ -2544,8 +2543,8 @@ this is."
           (put-text-property separator-start (1- (point)) 'cscope-stored-search cscope-previous-user-search)))
 
       (insert msg)
-      (cscope-search-one-database)
-      )
+      (cscope-search-one-database))
+
     (if cscope-display-cscope-buffer
 	(progn
 	  (pop-to-buffer outbuf)
@@ -2751,8 +2750,7 @@ cscope.out file was found without a corresponding cscope.files file."
 	  )
       (let ( (outbuf (get-buffer-create cscope-info-buffer-name)) )
 	(display-buffer outbuf)
-	(save-excursion
-	  (set-buffer outbuf)
+	(with-current-buffer outbuf
 	  (buffer-disable-undo)
 	  (erase-buffer)
 	  (insert "Cscope search directories:\n")
@@ -2766,11 +2764,7 @@ cscope.out file was found without a corresponding cscope.files file."
 			     default-directory)))
 		  (insert "\t" directory "\n")
 		  ))
-	    (setq info (cdr info))
-	    )
-	  )
-	))
-    ))
+	    (setq info (cdr info))))))))
 
 
 (defun cscope-dired-directory ()
