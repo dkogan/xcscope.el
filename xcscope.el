@@ -354,11 +354,9 @@
 ;;      the cscope results buffer.  If negative, the field is
 ;;      left-justified.
 ;;
-;; "cscope-do-not-update-database"
-;;      If non-nil, never check and/or update the cscope database when
-;;      searching.  Beware of setting this to non-nil, as this will
-;;      disable automatic database creation, updating, and
-;;      maintenance.
+;; "cscope-option-...." Various options passed to the 'cscope' process. Controls
+;;      things like include directories, database compression, database type,
+;;      etc.
 ;;
 ;; "cscope-display-cscope-buffer" 
 ;;      If non-nil, display the *cscope* buffer after each search
@@ -547,18 +545,20 @@ large codebases"
   :type 'boolean
   :group 'cscope)
 
+(defcustom cscope-option-do-not-update-database nil
+  "The -d option in cscope: never check and/or update the cscope
+database when searching. Beware of setting this to non-nil, as
+this will disable automatic database creation, updating, and
+maintenance."
+  :type 'boolean
+  :group 'cscope)
+
 (defcustom cscope-option-other nil
   "Any indexing/lookup options to pass to cscope. These are used
 both when building the database and when searching. Note that the
 most common options have specific customization in the
 cscope-option-* variables, and it is preferable to use those"
-  :type '(repeat string))
-
-(defcustom cscope-do-not-update-database nil
-  "If non-nil, never check and/or update the cscope database when searching.
-Beware of setting this to non-nil, as this will disable automatic database
-creation, updating, and maintenance."
-  :type 'boolean
+  :type '(repeat string)
   :group 'cscope)
 
 
@@ -1270,9 +1270,9 @@ directory should begin.")
              :style toggle
              :selected cscope-stop-at-first-match-dir ]
            [ "Never update cscope database"
-             (setq cscope-do-not-update-database
-                   (not cscope-do-not-update-database))
-             :style toggle :selected cscope-do-not-update-database ]
+             (setq cscope-option-do-not-update-database
+                   (not cscope-option-do-not-update-database))
+             :style toggle :selected cscope-option-do-not-update-database ]
            [ "Index recursively"
              (setq cscope-index-recursively
                    (not cscope-index-recursively))
@@ -2425,7 +2425,7 @@ using the mouse."
 	;; must both be writable.
 	(if (or (not (file-writable-p database-file))
 		(not (file-writable-p (file-name-directory database-file)))
-		cscope-do-not-update-database)
+		cscope-option-do-not-update-database)
 	    (setq options (cons "-d" options)))
 
 
