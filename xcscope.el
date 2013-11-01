@@ -526,22 +526,26 @@ It is designed to answer questions like:
 (defcustom cscope-option-include-directories nil
   "The -I option in cscope: add these directories to the list of
 search paths for #include, similar to the -I gcc option"
-  :type '(repeat directory))
+  :type '(repeat directory)
+  :group 'cscope)
 
 (defcustom cscope-option-disable-compression nil
   "The -c option in cscope: use an uncompressed, ASCII database"
-  :type 'boolean)
+  :type 'boolean
+  :group 'cscope)
 
 (defcustom cscope-option-kernel-mode nil
   "The -k option in cscope: use no system-wide include paths.
 Useful for self-contained codebases, such as a kernel"
-  :type 'boolean)
+  :type 'boolean
+  :group 'cscope)
 
 (defcustom cscope-option-use-inverted-index nil
   "The -q option in cscope: use an inverted database index. Takes
 longer to build, but results in faster lookups. Useful for very
 large codebases"
-  :type 'boolean)
+  :type 'boolean
+  :group 'cscope)
 
 (defcustom cscope-option-other nil
   "Any indexing/lookup options to pass to cscope. These are used
