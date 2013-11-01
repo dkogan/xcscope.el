@@ -872,7 +872,7 @@ at the start of a line, so the leading ^ must be omitted")
 ;;;;
 
 (defcustom cscope-use-face t
-  "*Whether to use text highlighting (à la font-lock) or not."
+  "*Whether to use text highlighting (like font-lock) or not."
   :group 'cscope
   :type '(boolean))
 
