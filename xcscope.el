@@ -11,7 +11,6 @@
 ;; Keywords: languages c
 ;; Homepage: https://github.com/dkogan/xcscope.el
 ;; Package-Version: 1.0
-;; Package-Requires: easymenu
 
 ;; This file is not part of GNU Emacs.
 
