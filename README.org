@@ -1,4 +1,4 @@
-The feature changelog:
+* New features relative to the cscope CVS tree
 
 - New searches are appended to the *cscope* buffer, instead of overwriting. The
   user thus sees a history of cscope search results in this buffer, and is able
