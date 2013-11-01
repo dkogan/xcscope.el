@@ -551,7 +551,7 @@ cscope-option-* variables, and it is preferable to use those"
   :type '(repeat string))
 
 (defcustom cscope-do-not-update-database nil
-  "*If non-nil, never check and/or update the cscope database when searching.
+  "If non-nil, never check and/or update the cscope database when searching.
 Beware of setting this to non-nil, as this will disable automatic database
 creation, updating, and maintenance."
   :type 'boolean
@@ -559,7 +559,7 @@ creation, updating, and maintenance."
 
 
 (defcustom cscope-database-regexps nil
-  "*List to force directory-to-cscope-database mappings.
+  "List to force directory-to-cscope-database mappings.
 This is a list of `(REGEXP DBLIST [ DBLIST ... ])', where:
 
 REGEXP is a regular expression matched against the current buffer's
@@ -687,14 +687,14 @@ done.
 		       ))
   :group 'cscope)
 (defcustom cscope-name-line-width -30
-  "*The width of the combined \"function name:line number\" field in the
+  "The width of the combined \"function name:line number\" field in the
 cscope results buffer.  If negative, the field is left-justified."
   :type 'integer
   :group 'cscope)
 
 
 (defcustom cscope-truncate-lines truncate-lines
-  "*The value of `truncate-lines' to use in cscope buffers.
+  "The value of `truncate-lines' to use in cscope buffers.
 This variable exists because it can be easier to read cscope buffers
 with truncated lines, while other buffers do not have truncated lines."
   :type 'boolean
@@ -702,51 +702,51 @@ with truncated lines, while other buffers do not have truncated lines."
 
 
 (defcustom cscope-display-times t
-  "*If non-nil, display how long each search took.
+  "If non-nil, display how long each search took.
 The elasped times are in seconds.  Floating-point support is required
 for this to work."
   :type 'boolean
   :group 'cscope)
 
 (defcustom cscope-max-cscope-buffer-size 1000000
-  "*If >0, limit the size of the *cscope* buffer. Only the
+  "If >0, limit the size of the *cscope* buffer. Only the
 'cscope-max-cscope-buffer-size' bytes at the end are kept,
 rounded up to keep whole sets of cscope output"
   :type 'integer
   :group 'cscope)
 
 (defcustom cscope-program "cscope"
-  "*The pathname of the cscope executable to use."
+  "The pathname of the cscope executable to use."
   :type 'string
   :group 'cscope)
 
 
 (defcustom cscope-index-file "cscope.files"
-  "*The name of the cscope file list file."
+  "The name of the cscope file list file."
   :type 'string
   :group 'cscope)
 
 
 (defcustom cscope-database-file "cscope.out"
-  "*The name of the cscope database file."
+  "The name of the cscope database file."
   :type 'string
   :group 'cscope)
 
 
 (defcustom cscope-edit-single-match t
-  "*If non-nil and only one match is output, edit the matched location."
+  "If non-nil and only one match is output, edit the matched location."
   :type 'boolean
   :group 'cscope)
 
 
 (defcustom cscope-display-cscope-buffer t
-  "*If non-nil automatically display the *cscope* buffer after each search."
+  "If non-nil automatically display the *cscope* buffer after each search."
   :type 'boolean
   :group 'cscope)
 
 
 (defcustom cscope-stop-at-first-match-dir nil
-  "*If non-nil, stop searching through multiple databases if a match is found.
+  "If non-nil, stop searching through multiple databases if a match is found.
 This option is useful only if multiple cscope database directories are being
 used.  When multiple databases are searched, setting this variable to non-nil
 will cause searches to stop when a search outputs anything; no databases after
@@ -756,7 +756,7 @@ this one will be searched."
 
 
 (defcustom cscope-use-relative-paths t
-  "*If non-nil, use relative paths when creating the list of files to index.
+  "If non-nil, use relative paths when creating the list of files to index.
 The path is relative to the directory in which the cscope database
 will be created.  If nil, absolute paths will be used.  Absolute paths
 are good if you plan on moving the database to some other directory
@@ -769,7 +769,7 @@ specify some automounted network path for this)."
 
 
 (defcustom cscope-index-recursively t
-  "*If non-nil, index files in the current directory and all subdirectories.
+  "If non-nil, index files in the current directory and all subdirectories.
 If nil, only files in the current directory are indexed.  This
 variable is only used when creating the list of files to index, or
 when creating the list of files and the corresponding cscope database."
@@ -805,21 +805,21 @@ Lex and Yacc source. These are globs accepted by 'find -iname'"
   :group 'cscope)
 
 (defcustom cscope-symbol-chars "A-Za-z0-9_"
-  "*A string containing legal characters in a symbol.
+  "A string containing legal characters in a symbol.
 The current syntax table should really be used for this."
   :type 'string
   :group 'cscope)
 
 
 (defcustom cscope-filename-chars "-.,/A-Za-z0-9_~!@#$%&+=\\\\"
-  "*A string containing legal characters in a symbol.
+  "A string containing legal characters in a symbol.
 The current syntax table should really be used for this."
   :type 'string
   :group 'cscope)
 
 
 (defcustom cscope-allow-arrow-overlays t
-  "*If non-nil, use an arrow overlay to show target lines.
+  "If non-nil, use an arrow overlay to show target lines.
 Arrow overlays are only used when the following functions are used:
 
     cscope-show-entry-other-window
@@ -834,13 +834,13 @@ be removed by quitting the cscope buffer."
 
 
 (defcustom cscope-overlay-arrow-string "=>"
-  "*The overlay string to use when displaying arrow overlays."
+  "The overlay string to use when displaying arrow overlays."
   :type 'string
   :group 'cscope)
 
 
 (defcustom cscope-close-window-after-select nil
-  "*If non-nil close the window showing the cscope buffer after an entry has been selected."
+  "If non-nil close the window showing the cscope buffer after an entry has been selected."
   :type 'boolean
   :group 'cscope)
 
@@ -872,7 +872,7 @@ at the start of a line, so the leading ^ must be omitted")
 ;;;;
 
 (defcustom cscope-use-face t
-  "*Whether to use text highlighting (like font-lock) or not."
+  "Whether to use text highlighting (like font-lock) or not."
   :group 'cscope
   :type '(boolean))
 
@@ -1003,7 +1003,7 @@ selected for it")
 
 
 (defvar cscope-list-entry-hook nil
-  "*Hook run after cscope-list-entry-mode entered.")
+  "Hook run after cscope-list-entry-mode entered.")
 
 
 (defun cscope-list-entry-mode ()
