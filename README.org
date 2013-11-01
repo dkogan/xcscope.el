@@ -1,3 +1,22 @@
+* Overview
+
+This is an emacs interface to the 'cscope' source cross-referencing tool
+(http://cscope.sf.net). It can answer such questions as
+
+- Where is this symbol used?
+- Where is this function called?
+- Where is this variable set?
+- Where is this file #included?
+
+The 'cscope' tool does the actual searching and lookup, while xcscope.el
+provides a convenient interface.
+
+* Provenance
+
+This is a continuation of the xcscope.el (by Darryl Okahata) that ships in the
+CVS tree of cscope itself. The code in the cscope tree is stable, so /this/ tree
+expands on the original source, fixing various bugs and adding features.
+
 * New features relative to the cscope CVS tree
 
 - New searches are appended to the *cscope* buffer, instead of overwriting. The
@@ -45,7 +64,7 @@
 - Some bold highlighting in the *cscope* results: the sought term, the search
   directory
 
-- Removed the external cscope-indexer script; this is now handled inside
+- Removed the external 'cscope-indexer' script; this is now handled inside
   xcscope.el. Additionally the list of source directories to ignore and the list
   of filename extensions to index are now customizable in the emacs
   customization interface
