@@ -1273,6 +1273,18 @@ directory should begin.")
              (setq cscope-option-do-not-update-database
                    (not cscope-option-do-not-update-database))
              :style toggle :selected cscope-option-do-not-update-database ]
+           [ "Disable cscope database compression"
+             (setq cscope-option-disable-compression
+                   (not cscope-option-disable-compression))
+             :style toggle :selected cscope-option-disable-compression ]
+           [ "Index using 'kernel mode'"
+             (setq cscope-option-kernel-mode
+                   (not cscope-option-kernel-mode))
+             :style toggle :selected cscope-option-kernel-mode ]
+           [ "Build an inverted index"
+             (setq cscope-option-use-inverted-index
+                   (not cscope-option-use-inverted-index))
+             :style toggle :selected cscope-option-use-inverted-index ]
            [ "Index recursively"
              (setq cscope-index-recursively
                    (not cscope-index-recursively))
