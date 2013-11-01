@@ -1424,7 +1424,13 @@ Returns the window displaying BUFFER."
 	  (if (> line-number 0)
 	      (progn
 		(setq old-pos (point))
-		(goto-line line-number)
+
+                ;; this is recommended instead of (goto-line line-number)
+                (save-restriction
+                  (widen)
+                  (goto-char (point-min))
+                  (forward-line (1- line-number)))
+
 		(setq old-point (point))
 
                 ;; Here I perform a fuzzy search. If the user has edited the
