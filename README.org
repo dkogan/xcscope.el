@@ -21,7 +21,7 @@ expands on the original source, fixing various bugs and adding features.
 
 - New searches are appended to the *cscope* buffer, instead of overwriting. The
   user thus sees a history of cscope search results in this buffer, and is able
-  to navigate through all fo them. There is a size limit to keep the buffer from
+  to navigate through all of them. There is a size limit to keep the buffer from
   growing out of control.
 
 - The *cscope* buffer can be navigated and edited similarly to emacs Diff buffers:
@@ -71,3 +71,12 @@ expands on the original source, fixing various bugs and adding features.
 
 - Various cscope options (kernel mode, inverted index, etc) can now be accessed
   through the emacs variables
+
+* License
+
+xcscope.el is distributed under the terms of version 2 (or later) of the GNU
+General Public License
+
+* Contact
+
+The maintainer is Dima Kogan <dima@secretsauce.net>
