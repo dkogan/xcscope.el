@@ -2966,23 +2966,17 @@ file."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defvar cscope-minor-mode nil "")
-(make-variable-buffer-local 'cscope-minor-mode)
-(put 'cscope-minor-mode 'permanent-local t)
-
-
 ;;;###autoload
-(defun cscope-minor-mode (&optional arg)
-  ""
-  (setq cscope-minor-mode (if (null arg) t (car arg)))
+(define-minor-mode cscope-minor-mode
+  "This cscope minor mode maps cscope keybindings to make cscope
+functions more accessible.
+
+Key bindings:
+\\{cscope-minor-mode-keymap}"
+  nil nil cscope-minor-mode-keymap
   (when cscope-minor-mode
     (easy-menu-add cscope-global-menu cscope-minor-mode-keymap)
-    (run-hooks 'cscope-minor-mode-hooks))
-  cscope-minor-mode)
-
-(or (assq 'cscope-minor-mode minor-mode-map-alist)
-    (setq minor-mode-map-alist (cons (cons 'cscope-minor-mode cscope-global-keymap)
-                                     minor-mode-map-alist)))
+    (run-hooks 'cscope-minor-mode-hooks)))
 
 ;;;###autoload
 (defun cscope-setup ()
