@@ -2965,12 +2965,12 @@ file."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;###autoload
 (defvar cscope-minor-mode nil "")
 (make-variable-buffer-local 'cscope-minor-mode)
 (put 'cscope-minor-mode 'permanent-local t)
 
 
+;;;###autoload
 (defun cscope-minor-mode (&optional arg)
   ""
   (setq cscope-minor-mode (if (null arg) t (car arg)))
@@ -2979,14 +2979,15 @@ file."
     (run-hooks 'cscope-minor-mode-hooks))
   cscope-minor-mode)
 
-
 (or (assq 'cscope-minor-mode minor-mode-map-alist)
     (setq minor-mode-map-alist (cons (cons 'cscope-minor-mode cscope-global-keymap)
-				     minor-mode-map-alist)))
+                                     minor-mode-map-alist)))
 
-(add-hook 'c-mode-hook (function cscope-minor-mode))
-(add-hook 'c++-mode-hook (function cscope-minor-mode))
-(add-hook 'dired-mode-hook (function cscope-minor-mode))
+;;;###autoload
+(progn
+  (add-hook 'c-mode-hook (function cscope-minor-mode))
+  (add-hook 'c++-mode-hook (function cscope-minor-mode))
+  (add-hook 'dired-mode-hook (function cscope-minor-mode)))
 
 (provide 'xcscope)
 
