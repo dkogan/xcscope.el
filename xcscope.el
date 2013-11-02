@@ -73,7 +73,7 @@
 ;;    ~/.emacs file to add keybindings that reduce the number of keystrokes
 ;;    required.  For example, the following will add "C-f#" keybindings, which
 ;;    are easier to type than the usual "C-c s" prefixed keybindings.  Note
-;;    that specifying "global-map" instead of "cscope-global-keymap" makes the
+;;    that specifying "global-map" instead of "cscope-minor-mode-keymap" makes the
 ;;    keybindings available in all buffers:
 ;;
 ;;	(define-key global-map [(control f3)]  'cscope-set-initial-directory)
@@ -1140,7 +1140,7 @@ directory should begin.")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defvar cscope-global-keymap
+(defvar cscope-minor-mode-keymap
   (let ((map (make-sparse-keymap)))
 
     ;; xemacs has various issues with (cscope-mouse-popup-menu-or-search), so I
@@ -1297,7 +1297,7 @@ directory should begin.")
          )))
 
   (easy-menu-define cscope-global-menu
-    cscope-global-keymap
+    cscope-minor-mode-keymap
     "cscope menu"
     `("Cscope" ,@menu-before ,@menu-only-global ,@menu-after))
 
@@ -2976,7 +2976,7 @@ file."
   ""
   (setq cscope-minor-mode (if (null arg) t (car arg)))
   (when cscope-minor-mode
-    (easy-menu-add cscope-global-menu cscope-global-keymap)
+    (easy-menu-add cscope-global-menu cscope-minor-mode-keymap)
     (run-hooks 'cscope-minor-mode-hooks))
   cscope-minor-mode)
 
