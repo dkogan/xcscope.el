@@ -61,12 +61,13 @@
 ;; 0. (It is, of course, assumed that cscope is already properly
 ;;    installed on the current system.)
 ;;
-;; 1. Put this emacs-lisp file somewhere where (X)Emacs can find it.  It
-;;    basically has to be in some directory listed in "load-path".
-;;
-;; 2. Edit your ~/.emacs file to add the line:
+;; 1. Install xcscope.el through your system package manager, MELPA or by
+;;    loading the file with
 ;;
 ;;      (require 'xcscope)
+;;
+;; 2. Call (cscope-setup). This can go into the .emacs to always enable
+;;    xcscope.el at emacs startup
 ;;
 ;; 3. If you intend to use xcscope.el often you can optionally edit your
 ;;    ~/.emacs file to add keybindings that reduce the number of keystrokes
@@ -2984,7 +2985,10 @@ file."
                                      minor-mode-map-alist)))
 
 ;;;###autoload
-(progn
+(defun cscope-setup ()
+  "Automatically turns on cscope-minor-mode when editing C and
+C++ sources"
+  (interactive)
   (add-hook 'c-mode-hook (function cscope-minor-mode))
   (add-hook 'c++-mode-hook (function cscope-minor-mode))
   (add-hook 'dired-mode-hook (function cscope-minor-mode)))

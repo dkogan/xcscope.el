@@ -19,6 +19,9 @@ expands on the original source, fixing various bugs and adding features.
 
 * New features relative to the cscope CVS tree
 
+- *(cscope-setup) must be called to enable cscope-minor-mode in C and C++ major
+  modes*
+
 - New searches are appended to the *cscope* buffer, instead of overwriting. The
   user thus sees a history of cscope search results in this buffer, and is able
   to navigate through all of them. There is a size limit to keep the buffer from
