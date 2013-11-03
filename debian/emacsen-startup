@@ -26,4 +26,10 @@
     (autoload 'cscope-minor-mode "xcscope.el"
       "Minor mode for the xcscope interface" t)
     (autoload 'cscope-setup "xcscope.el"
-      "Hook cscope minor mode for C and C++ sources" t)))
+      "Hook cscope minor mode for C and C++ sources" t)
+
+    ;; do (cscope-setup) if the package is loaded. This is done to retain
+    ;; compatibility with the older cscope-el debian package. The older packages
+    ;; had no (cscope-setup) function at all, so loading the package would do
+    ;; all the setup. This mimics that behavior
+    (eval-after-load 'xcscope '(cscope-setup))))
