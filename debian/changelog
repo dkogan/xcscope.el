@@ -1,7 +1,7 @@
 xcscope-el (1.0-1) unstable; urgency=low
 
-  * New upstream release using Dima Kogan's enhanced tree. Main changes
-    from the stable code in the cscope CVS:
+  * New upstream release using Dima Kogan's enhanced tree (Closes:
+    #729457). Main changes from the stable code in the cscope CVS:
 
     - New searches are appended to the *cscope* buffer, instead of
       overwriting.
