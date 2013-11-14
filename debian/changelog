@@ -1,25 +1,23 @@
 xcscope-el (1.0-1) unstable; urgency=low
 
+  [ Dima Kogan ] 
+  * New package (Closes: #729457)
   * New upstream release using Dima Kogan's enhanced tree (Closes:
-    #729457). Main changes from the stable code in the cscope CVS:
-
+    #653662, #672194). Main changes from the stable code in the cscope
+    CVS:
     - New searches are appended to the *cscope* buffer, instead of
       overwriting.
-  
     - The *cscope* buffer can be navigated and edited similarly to emacs Diff
       buffers
-
     - Previous searches can be re-run with the 'r' key in the *cscope* buffer.
-
     - xcscope.el can now work remotely over TRAMP
-
     - The indexing output now goes to the echo area instead of an explicit new
       buffer that the user must deal with
-
     - Better mouse support
-
     - Removed the external 'cscope-indexer' script
-
     - Various cscope options can now be accessed through the emacs variables
 
- -- Dima Kogan <dima@secretsauce.net>  Sun, 03 Nov 2013 19:11:07 -0800
+  [ tony mancill ]
+  * Add myself to Uploaders.
+
+ -- Dima Kogan <dima@secretsauce.net>  Wed, 13 Nov 2013 23:01:55 -0800
