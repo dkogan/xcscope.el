@@ -12,7 +12,7 @@ Vcs-Git: git://anonscm.debian.org/collab-maint/xcscope-el.git
 Package: xcscope-el
 Architecture: all
 Depends: cscope, emacs24 | emacsen, ${misc:Depends}
-Breaks: cscope-el
+Conflicts: cscope-el (<< 15.8a-2)
 Replaces: cscope-el
 Description: Interactively examine a C program source in emacs
  Cscope is a program that generates index tables from C and C++ source
