@@ -1,0 +1,23 @@
+Source: xcscope-el
+Section: devel
+Priority: optional
+Maintainer: Dima Kogan <dima@secretsauce.net>
+Uploaders: tony mancill <tmancill@debian.org>
+Build-Depends: debhelper (>= 9)
+Standards-Version: 3.9.5
+Homepage: https://github.com/dkogan/xcscope.el
+Vcs-Browser: http://anonscm.debian.org/gitweb/?p=collab-maint/xcscope-el.git
+Vcs-Git: git://anonscm.debian.org/collab-maint/xcscope-el.git
+
+Package: xcscope-el
+Architecture: all
+Depends: cscope, emacs24 | emacsen, ${misc:Depends}
+Conflicts: cscope-el (<< 15.8a-2)
+Replaces: cscope-el
+Description: Interactively examine a C program source in emacs
+ Cscope is a program that generates index tables from C and C++ source
+ files. It is also a client program that knows how to use the
+ generated index tables to answer questions such as where is a symbol
+ defined, where is a symbol referenced, etc.
+ .
+ xcscope-el contains the Emacs interfaces to cscope
