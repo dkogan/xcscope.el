@@ -3,7 +3,7 @@ Section: devel
 Priority: optional
 Maintainer: Dima Kogan <dima@secretsauce.net>
 Uploaders: tony mancill <tmancill@debian.org>
-Build-Depends: debhelper (>= 9)
+Build-Depends: debhelper (>= 9), perl
 Standards-Version: 3.9.5
 Homepage: https://github.com/dkogan/xcscope.el
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=collab-maint/xcscope-el.git

@@ -1,0 +1,8 @@
+To use xcscope-el in Debian, all you need to do is
+
+ (require 'xcscope)
+
+This automatically calls (cscope-setup), so there is no reason to explicitly do
+this when using the Debian package.
+
+ -- Dima Kogan <dima@secretsauce.net>, Tue, 24 Dec 2013 13:43:52 -0800
