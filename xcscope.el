@@ -2849,10 +2849,11 @@ file."
     (if (or (not sym)
             (string= sym "")
             (not (boundp 'cscope-suppress-user-symbol-prompt))
-
             ;; Always prompt for symbol in dired mode.
             (eq major-mode 'dired-mode))
-	(setq sym (read-from-minibuffer prompt sym))
+        (let ((full-prompt (concat prompt
+                                   (if sym (concat "(default " sym "): ")))))
+          (setq sym (read-string full-prompt nil nil sym)))
       sym)
     ))
 
