@@ -1137,6 +1137,9 @@ buffer.")
   "When set the directory in which searches for the cscope database
 directory should begin.")
 
+(defvar cscope-prompt-minibuffer-history nil
+  "The history of terms we searched for. This is one common
+history for ALL search types.")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -2855,7 +2858,7 @@ file."
         (let ((full-prompt (concat prompt
                                    (when sym
                                      (concat "(default '" sym "'): ")))))
-          (setq sym (read-string full-prompt nil nil sym)))
+          (setq sym (read-string full-prompt nil 'cscope-prompt-minibuffer-history sym)))
       sym)
     ))
 
