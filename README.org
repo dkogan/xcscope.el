@@ -3,14 +3,184 @@
 This is an emacs interface to the 'cscope' source cross-referencing tool
 (http://cscope.sf.net). It can answer such questions as
 
-- Where is this symbol used?
-- Where is this function called?
-- Where is this variable set?
-- Where is this file #included?
+- Where is this variable used?
+- What is the value of this preprocessor symbol?
+- Where is this function in the source files?
+- What functions call this function?
+- What functions are called by this function?
+- Where does the message "out of space" come from?
+- Where is this source file in the directory structure?
+- What files include this header file?
+- Where was this variable assigned-to?
 
 The 'cscope' tool does the actual searching and lookup, while xcscope.el
 provides a convenient interface.
 
+* GNU Global support
+
+GNU global (http://www.gnu.org/s/global/) is another source indexer much like
+cscope. It's better than cscope in some ways and worse in others. It also
+provides a compatibility interface to allow it to be used just like cscope. This
+means that xcscope.el can be used as a front-end to GNU Global. To do that,
+simply evaluate
+
+ (setq cscope-program "gtags-cscope")
+
+* Usage
+
+** Quick-start
+
+1. Install xcscope.el through your system package manager or MELPA, or simply
+   evaluate xcscope.el.
+
+2. Evaluate
+
+   (require 'xcscope)
+   (cscope-setup)
+
+Done! cscope-minor-mode is now hooked to C, C++ and dired modes. Default
+bindings are all prefixed with C-c s. So, for instance, to find a symbol do C-c
+s s. This is analogous to the M-. of tags. All results are shown in a new
+*cscope* buffer which pops up when needed.
+
+** More-detailed usage instructions
+
+Edit a source file, and use the pull-down or pop-up (button 3) menus to select
+one of:
+
+        Find symbol
+        Find global definition
+        Find called functions
+        Find functions calling a function
+        Find text string
+        Find egrep pattern
+        Find a file
+        Find files #including a file
+
+The cscope database will be automatically created in the same
+directory as the source files (assuming that you've never used
+cscope before), and a buffer will pop-up displaying the results.
+You can then use button 2 (the middle button) on the mouse to edit
+the selected file, or you can move the text cursor over a selection
+and press [Enter].
+
+The third mouse button is bound to a popup menu for cscope. Shift-mouse
+button 3 invokes the last find command again. E.g. if you look for the symbol
+'main' and afterwards you want to look for another symbol, just press Shift
+and click the third button.
+
+Each cscope search adds its results to the *cscope* buffer. These sets of
+results can be navigated and manupulated similar to patches in diff-mode:
+
+ - n/p navigates over individual results
+ - k kills individual results
+
+ - N/P or M-n/M-p navigates over file results
+ - M-k kills file results
+
+ - M-N/M-P navigates over result sets
+ - M-K kills result sets
+
+ - Navigation from outside the *cscope* buffer (C-c s n/p/N/P) is restricted to
+   the result set at (point)
+
+Any result set in the *cscope* buffer can be re-run with the 'r' key. This is
+useful if the sources changed
+
+** Keybindings:
+
+All keybindings use the "C-c s" prefix:
+
+     C-c s s         Find symbol.
+     C-c s =         Find assignments to this symbol
+     C-c s d         Find global definition.
+     C-c s g         Find global definition (alternate binding).
+     C-c s G         Find global definition without prompting.
+     C-c s c         Find functions calling a function.
+     C-c s C         Find called functions (list functions called
+                     from a function).
+     C-c s t         Find text string.
+     C-c s e         Find egrep pattern.
+     C-c s f         Find a file.
+     C-c s i         Find files #including a file.
+
+These pertain to navigation through the search results:
+
+     C-c s b         Display *cscope* buffer.
+     C-c s B         Auto display *cscope* buffer toggle.
+     C-c s n         Next symbol.
+     C-c s N         Next file.
+     C-c s p         Previous symbol.
+     C-c s P         Previous file.
+     C-c s u         Pop mark.
+
+These pertain to setting and unsetting the variable,
+`cscope-initial-directory', (location searched for the cscope database
+ directory):
+
+     C-c s a         Set initial directory.
+     C-c s A         Unset initial directory.
+
+These pertain to cscope database maintenance:
+
+     C-c s L         Create list of files to index.
+     C-c s I         Create list and index.
+     C-c s E         Edit list of files to index.
+     C-c s W         Locate this buffer's cscope directory
+                     ("W" --> "where").
+     C-c s S         Locate this buffer's cscope directory.
+                     (alternate binding: "S" --> "show").
+     C-c s T         Locate this buffer's cscope directory.
+                     (alternate binding: "T" --> "tell").
+     C-c s D         Dired this buffer's directory.
+
+** Interesting configuration variables:
+
+- cscope-truncate-lines
+
+  This is the value of `truncate-lines' to use in cscope
+  buffers; the default is the current setting of
+  `truncate-lines'.  This variable exists because it can be
+  easier to read cscope buffers with truncated lines, while
+  other buffers do not have truncated lines.
+  
+- cscope-use-relative-paths
+
+  If non-nil, use relative paths when creating the list of files
+  to index.  The path is relative to the directory in which the
+  cscope database will be created.  If nil, absolute paths will
+  be used.  Absolute paths are good if you plan on moving the
+  database to some other directory (if you do so, you'll
+  probably also have to modify `cscope-database-regexps').
+  Absolute paths may also be good if you share the database file
+  with other users (you'll probably want to specify some
+  automounted network path for this).
+  
+- cscope-index-recursively
+
+  If non-nil, index files in the current directory and all
+  subdirectories.  If nil, only files in the current directory
+  are indexed.  This variable is only used when creating the
+  list of files to index, or when creating the list of files and
+  the corresponding cscope database.
+  
+- cscope-name-line-width
+
+  The width of the combined "function name:line number" field in
+  the cscope results buffer.  If negative, the field is
+  left-justified.
+  
+- cscope-option-....
+
+ Various options passed to the 'cscope' process. Controls things like include
+ directories, database compression, database type, etc.
+
+- cscope-display-cscope-buffer
+
+  If non-nil, display the *cscope* buffer after each search (default). This
+  variable can be set in order to reduce the number of keystrokes required to
+  navigate through the matches.
+  
 * Provenance
 
 This is a continuation of the xcscope.el (by Darryl Okahata) that ships in the
@@ -75,7 +245,10 @@ expands on the original source, fixing various bugs and adding features.
 - Various cscope options (kernel mode, inverted index, etc) can now be accessed
   through the emacs variables
 
-* License
+* License and authorship
+
+xcscope.el was written by Darryl Okahata, with patches contributed by Triet H.
+Lai and Steven Elliott. Dima Kogan added some features.
 
 xcscope.el is distributed under the terms of version 2 (or later) of the GNU
 General Public License
