@@ -35,8 +35,8 @@ simply evaluate
 
 2. Evaluate
 
-   (require 'xcscope)
-   (cscope-setup)
+- (require 'xcscope)
+- (cscope-setup)
 
 Done! cscope-minor-mode is now hooked to C, C++ and dired modes. Default
 bindings are all prefixed with C-c s. So, for instance, to find a symbol do C-c
@@ -45,32 +45,33 @@ s s. This is analogous to the M-. of tags. All results are shown in a new
 
 ** More-detailed usage instructions
 
-Edit a source file, and use the pull-down or pop-up (button 3) menus to select
-one of:
+When xcscope.el is active, you can just use the keybindings (described below)
+when looking at source. You can also use the *Cscope* menu or a mouse pop-up
+menu (button 3).
 
-        Find symbol
-        Find global definition
-        Find called functions
-        Find functions calling a function
-        Find text string
-        Find egrep pattern
-        Find a file
-        Find files #including a file
-
-The cscope database will be automatically created in the same
-directory as the source files (assuming that you've never used
-cscope before), and a buffer will pop-up displaying the results.
-You can then use button 2 (the middle button) on the mouse to edit
-the selected file, or you can move the text cursor over a selection
-and press [Enter].
+When a search is performend, by default xcscope.el will traverse the directory
+hierarchy upwards, looking for the cscope database. If it doesn't find it, a new
+database will be made in the *current* directory. To create the database in a
+different (higher) directory, explicitly invoke C-c s I. A currently-existing
+database can be removed simply by deleting cscope.*. By default, cscope updates
+the database with every search. This is very convenient, but can be too slow for
+very large source trees.
 
 The third mouse button is bound to a popup menu for cscope. Shift-mouse
 button 3 invokes the last find command again. E.g. if you look for the symbol
 'main' and afterwards you want to look for another symbol, just press Shift
 and click the third button.
 
-Each cscope search adds its results to the *cscope* buffer. These sets of
-results can be navigated and manupulated similar to patches in diff-mode:
+Search results are displayed in a *cscope* buffer, which pops up when results
+are available. You can then use button 2 (the middle button) on the mouse to
+edit the selected file, or you can move the text cursor over a selection and
+press [Enter]. You can also press [space] to show the result in the other window
+(*cscope* buffer stays focused). Alternately, the navigation commands invoked
+with n/p, show the results too.
+
+Each cscope search adds its results to the *cscope* buffer. Thus this buffer
+contains a history of all past searches. These sets of results can be navigated
+and manupulated similar to patches in diff-mode:
 
  - n/p navigates over individual results
  - k kills individual results
