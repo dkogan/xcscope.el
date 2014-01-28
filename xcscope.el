@@ -2854,7 +2854,7 @@ file."
             (eq major-mode 'dired-mode))
         (let ((full-prompt (concat prompt
                                    (when sym
-                                     (concat "(default '" sym "'): ")))))
+                                     (concat "(regex; default '" sym "'): ")))))
           (setq sym (read-string full-prompt nil 'cscope-prompt-minibuffer-history sym)))
       sym)
     ))
