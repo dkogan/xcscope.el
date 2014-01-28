@@ -2185,12 +2185,15 @@ This function sets up face and the fuzzy-search string"
 
           (when highlight-search-re
 
-            ;; unless we're searching for plain text strings, the tokens we seek
-            ;; are full words, so we limit ourselves to those
+            ;; unless we're searching for arbitrary text strings, the tokens we
+            ;; seek are full words. Furthermore, any '.' wildcard in those has
+            ;; to match a C symbol
             (unless (or (eq search-type 'cscope-find-egrep-pattern)
                         (eq search-type 'cscope-find-this-text-string))
-              (setq highlight-search-re (concat "\\b" highlight-search-re "\\b")))
 
+              (setq highlight-search-re
+                    (replace-regexp-in-string "\\([^\\\\]\\)\\." "\\1[a-zA-Z0-9_]"
+                                              (concat "\\b" highlight-search-re "\\b"))))
             (let* ((case-fold-search nil)
                    (start (string-match
                            highlight-search-re
