@@ -2872,7 +2872,7 @@ file."
 (defun cscope-find-this-symbol (symbol)
   "Locate a symbol in source code."
   (interactive (list
-		(cscope-prompt-for-symbol "Find this symbol: " nil nil t)
+		(cscope-prompt-for-symbol "Find this symbol " nil nil t)
 		))
   (setq cscope-previous-user-search `(cscope-find-this-symbol ,symbol))
   (cscope-call "Finding symbol:" 0 symbol)
@@ -2882,7 +2882,7 @@ file."
 (defun cscope-find-global-definition (symbol)
   "Find a symbol's global definition."
   (interactive (list
-		(cscope-prompt-for-symbol "Find this global definition: " nil nil t)
+		(cscope-prompt-for-symbol "Find this global definition " nil nil t)
 		))
   (setq cscope-previous-user-search `(cscope-find-global-definition ,symbol))
   (cscope-call "Finding global definition:" 1 symbol)
@@ -2902,7 +2902,7 @@ file."
   "Display functions called by a function."
   (interactive (list
 		(cscope-prompt-for-symbol
-		 "Find functions called by this function: " nil nil t)
+		 "Find functions called by this function " nil nil t)
 		))
   (setq cscope-previous-user-search `(cscope-find-called-functions ,symbol))
   (cscope-call "Finding functions called by:" 2 symbol)
@@ -2913,7 +2913,7 @@ file."
   "Display functions calling a function."
   (interactive (list
 		(cscope-prompt-for-symbol
-		 "Find functions calling this function: " nil nil t)
+		 "Find functions calling this function " nil nil t)
 		))
   (setq cscope-previous-user-search `(cscope-find-functions-calling-this-function ,symbol))
   (cscope-call "Finding functions calling:" 3 symbol)
@@ -2923,7 +2923,7 @@ file."
 (defun cscope-find-this-text-string (symbol)
   "Locate where a text string occurs."
   (interactive (list
-		(cscope-prompt-for-symbol "Find this text string: " nil t nil)
+		(cscope-prompt-for-symbol "Find this text string " nil t nil)
 		))
   (setq cscope-previous-user-search `(cscope-find-this-text-string ,symbol))
   (cscope-call "Finding text string:" 4 symbol)
@@ -2934,7 +2934,7 @@ file."
   "Run egrep over the cscope database."
   (interactive (list
 		(let (cscope-no-mouse-prompts)
-		  (cscope-prompt-for-symbol "Find this egrep pattern: " nil t t))
+		  (cscope-prompt-for-symbol "Find this egrep pattern " nil t t))
 		))
   (setq cscope-previous-user-search `(cscope-find-egrep-pattern ,symbol))
   (cscope-call "Finding egrep pattern:" 6 symbol)
@@ -2945,7 +2945,7 @@ file."
   "Locate a file."
   (interactive (list
 		(let (cscope-no-mouse-prompts)
-		  (cscope-prompt-for-symbol "Find this file: " t nil t))
+		  (cscope-prompt-for-symbol "Find this file " t nil t))
 		))
 
   (setq cscope-previous-user-search `(cscope-find-this-file ,symbol))
@@ -2958,7 +2958,7 @@ file."
   (interactive (list
 		(let (cscope-no-mouse-prompts)
 		  (cscope-prompt-for-symbol
-		   "Find files #including this file: " t nil nil))
+		   "Find files #including this file " t nil nil))
 		))
   (setq cscope-previous-user-search `(cscope-find-files-including-file ,symbol))
   (cscope-call "Finding files #including file:" 8 symbol)
@@ -2968,7 +2968,7 @@ file."
 (defun cscope-find-assignments-to-this-symbol (symbol)
   "Locate assignments to a symbol in the source code."
   (interactive (list
-		(cscope-prompt-for-symbol "Find assignments to this symbol: " nil nil t)
+		(cscope-prompt-for-symbol "Find assignments to this symbol " nil nil t)
 		))
   (setq cscope-previous-user-search `(cscope-find-assignments-to-this-symbol ,symbol))
   (cscope-call "Finding assignments to symbol:" 9 symbol)
