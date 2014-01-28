@@ -2171,15 +2171,12 @@ This function sets up face and the fuzzy-search string"
                (search-symbol (cadr cscope-previous-user-search))
 
                ;; nothing to highlight for search types where the sought symbol isn't
-               ;; expected to appear at a matched result line. If we're not searching
-               ;; for a regex, quote the string to effectively search for plain text
+               ;; expected to appear at a matched result line
                (highlight-search-re
                 (if (or (eq search-type 'cscope-find-this-file)
                         (eq search-type 'cscope-find-called-functions))
                     nil
-                  (if (eq search-type 'cscope-find-egrep-pattern)
-                      search-symbol
-                    (regexp-quote search-symbol)))))
+                  search-symbol)))
 
           (when highlight-search-re
 
