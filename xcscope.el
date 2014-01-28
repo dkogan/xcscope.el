@@ -2189,7 +2189,7 @@ This function sets up face and the fuzzy-search string"
             (let* ((case-fold-search nil)
                    (start (string-match
                            highlight-search-re
-                           str beg)))
+                           str (1+ end))))
               (when start
                 (put-text-property start (match-end 0) 'face 'bold str)))))))
 
