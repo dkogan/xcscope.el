@@ -3,28 +3,3 @@
 
 %:
 	dh  $@
-
-# command to extract the documentation from the lisp and to strip out the
-# install instructions
-define CMD_GET_DOCS
-  if(/^;;; Commentary:/.../^;;;/)			\
-  {							\
-    next if /^;;;/;					\
-    s/^;; ?//;						\
-    print unless /INSTALLATION/.../USING THIS MODULE/;	\
-  }
-endef
-
-READMES_EXTRA := README README.updates.org
-
-README: xcscope.el
-	perl -ne '$(CMD_GET_DOCS)' $< > $@
-
-README.updates.org: README.org
-	cp $< $@
-
-override_dh_installdocs: $(READMES_EXTRA)
-	dh_installdocs
-
-override_dh_clean:
-	rm -rf $(READMES_EXTRA)
