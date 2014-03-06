@@ -1137,6 +1137,9 @@ buffer.")
   "When set the directory in which searches for the cscope database
 directory should begin.")
 
+(defvar cscope-prompt-minibuffer-history nil
+  "The history of terms we searched for. This is one common
+history for ALL search types.")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -2168,28 +2171,33 @@ This function sets up face and the fuzzy-search string"
                (search-symbol (cadr cscope-previous-user-search))
 
                ;; nothing to highlight for search types where the sought symbol isn't
-               ;; expected to appear at a matched result line. If we're not searching
-               ;; for a regex, quote the string to effectively search for plain text
+               ;; expected to appear at a matched result line.
+               ;;
+               ;; test-strings aren't regexes, so quote those. Everything else
+               ;; is a regex, so pass that right on through
                (highlight-search-re
                 (if (or (eq search-type 'cscope-find-this-file)
                         (eq search-type 'cscope-find-called-functions))
                     nil
-                  (if (eq search-type 'cscope-find-egrep-pattern)
-                      search-symbol
-                    (regexp-quote search-symbol)))))
+                  (if (eq search-type 'cscope-find-this-text-string)
+                      (regexp-quote search-symbol)
+                    search-symbol))))
 
           (when highlight-search-re
 
-            ;; unless we're searching for plain text strings, the tokens we seek
-            ;; are full words, so we limit ourselves to those
+            ;; unless we're searching for arbitrary text strings, the tokens we
+            ;; seek are full words. Furthermore, any '.' wildcard in those has
+            ;; to match a C symbol
             (unless (or (eq search-type 'cscope-find-egrep-pattern)
                         (eq search-type 'cscope-find-this-text-string))
-              (setq highlight-search-re (concat "\\b" highlight-search-re "\\b")))
 
+              (setq highlight-search-re
+                    (replace-regexp-in-string "\\([^\\\\]\\)\\." "\\1[a-zA-Z0-9_]"
+                                              (concat "\\b" highlight-search-re "\\b"))))
             (let* ((case-fold-search nil)
                    (start (string-match
                            highlight-search-re
-                           str beg)))
+                           str (1+ end))))
               (when start
                 (put-text-property start (match-end 0) 'face 'bold str)))))))
 
@@ -2843,7 +2851,7 @@ file."
       )))
 
 
-(defun cscope-prompt-for-symbol (prompt extract-filename try-to-use-region)
+(defun cscope-prompt-for-symbol (prompt extract-filename try-to-use-region is-regex)
   "Prompt the user for a cscope symbol."
   (let ((sym (cscope-extract-symbol-at-cursor extract-filename try-to-use-region)))
     (if (or (not sym)
@@ -2852,7 +2860,14 @@ file."
 
             ;; Always prompt for symbol in dired mode.
             (eq major-mode 'dired-mode))
-	(setq sym (read-from-minibuffer prompt sym))
+        (let ((full-prompt (concat prompt
+                                   (when sym
+                                     (concat "("
+                                             (when is-regex "regex; ")
+                                             "default '"
+                                             sym
+                                             "'): ")))))
+          (setq sym (read-string full-prompt nil 'cscope-prompt-minibuffer-history sym)))
       sym)
     ))
 
@@ -2860,7 +2875,7 @@ file."
 (defun cscope-find-this-symbol (symbol)
   "Locate a symbol in source code."
   (interactive (list
-		(cscope-prompt-for-symbol "Find this symbol: " nil nil)
+		(cscope-prompt-for-symbol "Find this symbol " nil nil t)
 		))
   (setq cscope-previous-user-search `(cscope-find-this-symbol ,symbol))
   (cscope-call "Finding symbol:" 0 symbol)
@@ -2870,7 +2885,7 @@ file."
 (defun cscope-find-global-definition (symbol)
   "Find a symbol's global definition."
   (interactive (list
-		(cscope-prompt-for-symbol "Find this global definition: " nil nil)
+		(cscope-prompt-for-symbol "Find this global definition " nil nil t)
 		))
   (setq cscope-previous-user-search `(cscope-find-global-definition ,symbol))
   (cscope-call "Finding global definition:" 1 symbol)
@@ -2890,7 +2905,7 @@ file."
   "Display functions called by a function."
   (interactive (list
 		(cscope-prompt-for-symbol
-		 "Find functions called by this function: " nil nil)
+		 "Find functions called by this function " nil nil t)
 		))
   (setq cscope-previous-user-search `(cscope-find-called-functions ,symbol))
   (cscope-call "Finding functions called by:" 2 symbol)
@@ -2901,7 +2916,7 @@ file."
   "Display functions calling a function."
   (interactive (list
 		(cscope-prompt-for-symbol
-		 "Find functions calling this function: " nil nil)
+		 "Find functions calling this function " nil nil t)
 		))
   (setq cscope-previous-user-search `(cscope-find-functions-calling-this-function ,symbol))
   (cscope-call "Finding functions calling:" 3 symbol)
@@ -2911,7 +2926,7 @@ file."
 (defun cscope-find-this-text-string (symbol)
   "Locate where a text string occurs."
   (interactive (list
-		(cscope-prompt-for-symbol "Find this text string: " nil t)
+		(cscope-prompt-for-symbol "Find this text string " nil t nil)
 		))
   (setq cscope-previous-user-search `(cscope-find-this-text-string ,symbol))
   (cscope-call "Finding text string:" 4 symbol)
@@ -2922,7 +2937,7 @@ file."
   "Run egrep over the cscope database."
   (interactive (list
 		(let (cscope-no-mouse-prompts)
-		  (cscope-prompt-for-symbol "Find this egrep pattern: " nil t))
+		  (cscope-prompt-for-symbol "Find this egrep pattern " nil t t))
 		))
   (setq cscope-previous-user-search `(cscope-find-egrep-pattern ,symbol))
   (cscope-call "Finding egrep pattern:" 6 symbol)
@@ -2933,7 +2948,7 @@ file."
   "Locate a file."
   (interactive (list
 		(let (cscope-no-mouse-prompts)
-		  (cscope-prompt-for-symbol "Find this file: " t nil))
+		  (cscope-prompt-for-symbol "Find this file " t nil t))
 		))
 
   (setq cscope-previous-user-search `(cscope-find-this-file ,symbol))
@@ -2946,7 +2961,7 @@ file."
   (interactive (list
 		(let (cscope-no-mouse-prompts)
 		  (cscope-prompt-for-symbol
-		   "Find files #including this file: " t nil))
+		   "Find files #including this file " t nil nil))
 		))
   (setq cscope-previous-user-search `(cscope-find-files-including-file ,symbol))
   (cscope-call "Finding files #including file:" 8 symbol)
@@ -2956,7 +2971,7 @@ file."
 (defun cscope-find-assignments-to-this-symbol (symbol)
   "Locate assignments to a symbol in the source code."
   (interactive (list
-		(cscope-prompt-for-symbol "Find assignments to this symbol: " nil nil)
+		(cscope-prompt-for-symbol "Find assignments to this symbol " nil nil t)
 		))
   (setq cscope-previous-user-search `(cscope-find-assignments-to-this-symbol ,symbol))
   (cscope-call "Finding assignments to symbol:" 9 symbol)
