@@ -1,3 +1,15 @@
+xcscope-el (1.1-1) unstable; urgency=low
+
+  * Upstream update
+    - Use `read-string' rather than `read-from-minibuffer'
+    - cscope searches now have a separate history of search symbols
+    - more detailed readme
+    - I no longer quote my regex before highlighting
+    - Improved prompting and highlighting of searches that take into
+      account that most queries are regexes
+
+ -- Dima Kogan <dima@secretsauce.net>  Thu, 06 Mar 2014 01:31:55 -0800
+
 xcscope-el (1.0-2) unstable; urgency=low
 
   * Minor fixes to follow the emacsen-common 2.0 policy
