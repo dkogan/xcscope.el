@@ -2077,13 +2077,13 @@ Starting from DIRECTORY, look upwards for a cscope database."
 	      (setq database-dir this-directory)
 	      (throw 'done database-dir)
 	      ))
-	(if (string-match "^\\(/\\|[A-Za-z]:[\\/]\\)$" this-directory)
-	    (throw 'done directory))
-	(setq this-directory (file-name-as-directory
-			      (file-name-directory
-			       (directory-file-name this-directory))))
-	))
-    ))
+
+        (let ((parent-directory (file-name-as-directory
+                                 (file-name-directory
+                                  (directory-file-name this-directory)))))
+          (if (string= this-directory parent-directory)
+              (throw 'done directory)
+            (setq this-directory parent-directory)))))))
 
 
 (defun cscope-find-info (top-directory)
