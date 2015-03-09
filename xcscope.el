@@ -852,6 +852,21 @@ be removed by quitting the cscope buffer."
 (defvar cscope-minor-mode-hooks nil
   "List of hooks to call when entering cscope-minor-mode.")
 
+(defvar cscope-display-buffer-args
+  (and (not cscope-running-in-xemacs)
+       (>= emacs-major-version 24)
+       '(display-buffer-use-some-window (inhibit-same-window . t)))
+  "Default arguments to `display-buffer'. This applies to ACTION
+and FRAME arguments of the newer `display-buffer' in >= GNU Emacs
+24. This controls how and where the *cscope* buffer is popped up.
+By default I do not use the current window (so the *cscope*
+buffer stays active) and I try not to make new windows.")
+
+(defun cscope-display-buffer-wrapper (buffer)
+  "Calls `display-buffer' using
+`cscope-display-buffer-args'"
+  (apply 'display-buffer buffer cscope-display-buffer-args))
+
 
 (defconst cscope-result-separator
   "===============================================================================\n"
@@ -1423,7 +1438,7 @@ Returns the window displaying BUFFER."
 	  (setq buffer (find-file-noselect file))
 	  (if (windowp window)
 	      (set-window-buffer window buffer)
-	    (setq window (display-buffer buffer)))
+	    (setq window (cscope-display-buffer-wrapper buffer)))
 	  (set-buffer buffer)
 	  (if (> line-number 0)
 	      (progn
@@ -1947,7 +1962,7 @@ either 'result or 'file"
 	(if (eq old-buffer cscope-buffer)
 	    (progn ;; In the *cscope* buffer.
 	      (set-buffer marker-buffer)
-	      (setq marker-window (display-buffer marker-buffer))
+	      (setq marker-window (cscope-display-buffer-wrapper marker-buffer))
 	      (set-window-point marker-window marker-point)
 	      (select-window marker-window))
 	  (switch-to-buffer marker-buffer))
@@ -2581,7 +2596,7 @@ isn't available, so it simply displays the MESSAGE in the BUFFER"
       (erase-buffer)
       (insert message)
       (goto-char (point-min))
-      (display-buffer (current-buffer)))))
+      (cscope-display-buffer-wrapper (current-buffer)))))
 
 
 (defun cscope-unix-index-files-filter (process output)
@@ -2758,7 +2773,7 @@ cscope.out file was found without a corresponding cscope.files file."
 	  (message (concat "Cscope directory: " directory))
 	  )
       (let ( (outbuf (get-buffer-create cscope-info-buffer-name)) )
-	(display-buffer outbuf)
+	(cscope-display-buffer-wrapper outbuf)
 	(with-current-buffer outbuf
 	  (buffer-disable-undo)
 	  (erase-buffer)
