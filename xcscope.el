@@ -520,6 +520,7 @@ It is designed to answer questions like:
   :prefix "cscope-"
   :group 'tools)
 
+(defconst cscope-running-in-xemacs (string-match "XEmacs\\|Lucid" emacs-version))
 
 (defcustom cscope-option-include-directories nil
   "The -I option in cscope: add these directories to the list of
@@ -946,8 +947,6 @@ at the start of a line, so the leading ^ must be omitted")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Probably, nothing user-customizable past this point.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defconst cscope-running-in-xemacs (string-match "XEmacs\\|Lucid" emacs-version))
-
 (defconst cscope-start-file-process (if cscope-running-in-xemacs 'start-process 'start-file-process)
   "The function used to launch external processes. Xemacs doesn't
 have full TRAMP support here, so the less featureful function is
