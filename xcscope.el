@@ -1192,7 +1192,9 @@ history for ALL search types.")
     (define-key map "T" 'cscope-tell-user-about-directory)
     (define-key map "D" 'cscope-dired-directory)
     ;; The previous line corresponds to be end of the "Cscope" menu.
-    map))
+    map)
+  "The keymap used by cscope.  This is defined relative to
+`cscope-keymap-prefix'")
 
 (defcustom cscope-keymap-prefix "\C-cs"
   "Prefix for key bindings of `cscope-minor-mode'.
