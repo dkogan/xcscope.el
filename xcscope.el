@@ -1158,6 +1158,63 @@ history for ALL search types.")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defvar cscope-command-map
+  (let ((map (make-sparse-keymap)))
+    ;; The following line corresponds to be beginning of the "Cscope" menu.
+    (define-key map "s" 'cscope-find-this-symbol)
+    (define-key map "d" 'cscope-find-global-definition)
+    (define-key map "g" 'cscope-find-global-definition)
+    (define-key map "G" 'cscope-find-global-definition-no-prompting)
+    (define-key map "=" 'cscope-find-assignments-to-this-symbol)
+    (define-key map "c" 'cscope-find-functions-calling-this-function)
+    (define-key map "C" 'cscope-find-called-functions)
+    (define-key map "t" 'cscope-find-this-text-string)
+    (define-key map "e" 'cscope-find-egrep-pattern)
+    (define-key map "f" 'cscope-find-this-file)
+    (define-key map "i" 'cscope-find-files-including-file)
+    ;; --- (The '---' indicates that this line corresponds to a menu separator.)
+    (define-key map "b" 'cscope-display-buffer)
+    (define-key map "B" 'cscope-display-buffer-toggle)
+    (define-key map "n" 'cscope-history-forward-line-current-result)
+    (define-key map "N" 'cscope-history-forward-file-current-result)
+    (define-key map "p" 'cscope-history-backward-line-current-result)
+    (define-key map "P" 'cscope-history-backward-file-current-result)
+    (define-key map "u" 'cscope-pop-mark)
+    ;; ---
+    (define-key map "a" 'cscope-set-initial-directory)
+    (define-key map "A" 'cscope-unset-initial-directory)
+    ;; ---
+    (define-key map "L" 'cscope-create-list-of-files-to-index)
+    (define-key map "I" 'cscope-index-files)
+    (define-key map "E" 'cscope-edit-list-of-files-to-index)
+    (define-key map "W" 'cscope-tell-user-about-directory)
+    (define-key map "S" 'cscope-tell-user-about-directory)
+    (define-key map "T" 'cscope-tell-user-about-directory)
+    (define-key map "D" 'cscope-dired-directory)
+    ;; The previous line corresponds to be end of the "Cscope" menu.
+    map))
+
+(defcustom cscope-keymap-prefix "\C-cs"
+  "Prefix for key bindings of `cscope-minor-mode'.
+
+Changing this variable outside Customize does not have any
+effect.  To change the keymap prefix from Lisp, you need to
+explicitly re-define the prefix key:
+
+    (define-key cscope-minor-mode-keymap cscope-keymap-prefix nil)
+    (setq cscope-keymap-prefix (kbd \"C-c ,\"))
+    (define-key cscope-minor-mode-keymap cscope-keymap-prefix
+                cscope-command-map)"
+  :group 'cscope
+  :type 'string
+  :risky t
+  :set
+  (lambda (variable key)
+    (when (and (boundp variable) (boundp 'cscope-minor-mode-keymap))
+      (define-key cscope-minor-mode-keymap (symbol-value variable) nil)
+      (define-key cscope-minor-mode-keymap key cscope-command-map))
+    (set-default variable key)))
+
 (defvar cscope-minor-mode-keymap
   (let ((map (make-sparse-keymap)))
 
@@ -1170,38 +1227,7 @@ history for ALL search types.")
       (define-key map [mouse-3]   'cscope-mouse-popup-menu-or-search)
       (define-key map [S-mouse-3] 'cscope-mouse-search-again))
 
-    ;; The following line corresponds to be beginning of the "Cscope" menu.
-    (define-key map "\C-css" 'cscope-find-this-symbol)
-    (define-key map "\C-csd" 'cscope-find-global-definition)
-    (define-key map "\C-csg" 'cscope-find-global-definition)
-    (define-key map "\C-csG" 'cscope-find-global-definition-no-prompting)
-    (define-key map "\C-cs=" 'cscope-find-assignments-to-this-symbol)
-    (define-key map "\C-csc" 'cscope-find-functions-calling-this-function)
-    (define-key map "\C-csC" 'cscope-find-called-functions)
-    (define-key map "\C-cst" 'cscope-find-this-text-string)
-    (define-key map "\C-cse" 'cscope-find-egrep-pattern)
-    (define-key map "\C-csf" 'cscope-find-this-file)
-    (define-key map "\C-csi" 'cscope-find-files-including-file)
-    ;; --- (The '---' indicates that this line corresponds to a menu separator.)
-    (define-key map "\C-csb" 'cscope-display-buffer)
-    (define-key map "\C-csB" 'cscope-display-buffer-toggle)
-    (define-key map "\C-csn" 'cscope-history-forward-line-current-result)
-    (define-key map "\C-csN" 'cscope-history-forward-file-current-result)
-    (define-key map "\C-csp" 'cscope-history-backward-line-current-result)
-    (define-key map "\C-csP" 'cscope-history-backward-file-current-result)
-    (define-key map "\C-csu" 'cscope-pop-mark)
-    ;; ---
-    (define-key map "\C-csa" 'cscope-set-initial-directory)
-    (define-key map "\C-csA" 'cscope-unset-initial-directory)
-    ;; ---
-    (define-key map "\C-csL" 'cscope-create-list-of-files-to-index)
-    (define-key map "\C-csI" 'cscope-index-files)
-    (define-key map "\C-csE" 'cscope-edit-list-of-files-to-index)
-    (define-key map "\C-csW" 'cscope-tell-user-about-directory)
-    (define-key map "\C-csS" 'cscope-tell-user-about-directory)
-    (define-key map "\C-csT" 'cscope-tell-user-about-directory)
-    (define-key map "\C-csD" 'cscope-dired-directory)
-    ;; The previous line corresponds to be end of the "Cscope" menu.
+    (define-key map cscope-keymap-prefix cscope-command-map)
 
     map)
   "The global cscope keymap")
