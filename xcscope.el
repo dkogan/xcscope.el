@@ -1667,7 +1667,7 @@ since the trailing newline is NOT propertized."
               (get-text-property (point) 'cscope-line-number)
               (get-text-property (point) 'cscope-fuzzy-search-text-regexp)))))
 
-(defun get-cscope-directory (&optional beg-end)
+(defun cscope-get-directory (&optional beg-end)
   "In a *cscope* buffer, searches for the
 
   Database directory:
@@ -2049,7 +2049,7 @@ modified in-place"
            ;; try to rerun the search in the same directory as before
            (cscope-initial-directory
             (or cscope-initial-directory
-                (get-cscope-directory beg-end)))
+                (cscope-get-directory beg-end)))
            cscope-rerunning-search ;; this is bound here to tell cscope-call to not move the point
            )
       (delete-region beg end)
@@ -2576,7 +2576,7 @@ this is."
             ;; *cscope*, try to use the directory of the search at point
             (or cscope-initial-directory
                 (and (eq outbuf old-buffer)
-                     (get-cscope-directory)))))
+                     (cscope-get-directory)))))
           (msg (concat basemsg " "
                        (cscope-boldify-if-needed symbol)))
           (args (list (format "-%d" search-id) symbol)))
