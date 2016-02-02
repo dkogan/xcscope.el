@@ -520,6 +520,8 @@ It is designed to answer questions like:
   :prefix "cscope-"
   :group 'tools)
 
+(defconst cscope-database-directory-prompt "Database directory")
+
 (defconst cscope-running-in-xemacs (string-match "XEmacs\\|Lucid" emacs-version))
 
 (defcustom cscope-option-include-directories nil
@@ -1665,6 +1667,34 @@ since the trailing newline is NOT propertized."
               (get-text-property (point) 'cscope-line-number)
               (get-text-property (point) 'cscope-fuzzy-search-text-regexp)))))
 
+(defun get-cscope-directory (&optional beg-end)
+  "In a *cscope* buffer, searches for the
+
+  Database directory:
+
+string to get the directory of the search at point."
+
+  (save-excursion
+
+    (when (not beg-end)
+      (setq beg-end (cscope-get-history-bounds-this-result 'result)))
+
+    (end-of-line)
+    (let ((case-fold-search nil))
+      (and
+       (or
+        (re-search-backward (concat
+                             "^" cscope-database-directory-prompt
+                             "[a-z/]*: \\(.+\\)$")
+                            (car beg-end) t)
+        (progn
+          (goto-char (car beg-end))
+          (re-search-forward (concat
+                              "^" cscope-database-directory-prompt
+                              "[a-z/]*: \\(.+\\)$")
+                             (cadr beg-end) t)))
+       (match-string-no-properties 1)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions in *cscope* buffer which lists the search results
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2017,8 +2047,9 @@ modified in-place"
            (search (get-text-property beg 'cscope-stored-search))
 
            ;; try to rerun the search in the same directory as before
-           (cscope-initial-directory (or cscope-initial-directory
-                                         (get-text-property beg 'cscope-directory)))
+           (cscope-initial-directory
+            (or cscope-initial-directory
+                (get-cscope-directory beg-end)))
            cscope-rerunning-search ;; this is bound here to tell cscope-call to not move the point
            )
       (delete-region beg end)
@@ -2343,7 +2374,8 @@ using the mouse."
 	 (old-buffer-window (get-buffer-window old-buffer)) )
 
     (with-current-buffer buffer
-      (let (continue)
+      (let (continue
+            (directory-this-search default-directory))
         (save-excursion
           (goto-char cscope-last-output-point)
 
@@ -2382,13 +2414,13 @@ using the mouse."
             (setq cscope-process nil)
             (if cscope-running-in-xemacs
                 (setq modeline-process ": Search complete"))
+            (when cscope-start-directory
+              (setq default-directory cscope-start-directory)))
 
-            ;; save the directory of this search
-            (let ((search-start-point (cscope-find-this-separator-start cscope-result-separator (1- (point)) t)))
-              (put-text-property search-start-point (point) 'cscope-directory default-directory))
 
-            (if cscope-start-directory
-                (setq default-directory cscope-start-directory)))
+
+
+
           (set-buffer-modified-p nil))
 
         (if (and done cscope-first-match-point update-window)
@@ -2500,10 +2532,10 @@ using the mouse."
 ;; is this require for multiple databases?
 	;; (goto-char (point-max))
         (if (string= base-database-file-name cscope-database-file)
-            (insert "\nDatabase directory: "
+            (insert (concat "\n" cscope-database-directory-prompt ": ")
                     (cscope-boldify-if-needed cscope-directory)
                     "\n\n")
-          (insert "\nDatabase directory/file: "
+          (insert (concat "\n" cscope-database-directory-prompt "/file: ")
 		  (cscope-boldify-if-needed cscope-directory base-database-file-name)
                   "\n\n"))
 	;; Add the correct database file to search
@@ -2546,7 +2578,7 @@ this is."
             ;; *cscope*, try to use the directory of the search at point
             (or cscope-initial-directory
                 (and (eq outbuf old-buffer)
-                     (get-text-property (point) 'cscope-directory)))))
+                     (get-cscope-directory)))))
           (msg (concat basemsg " "
                        (cscope-boldify-if-needed symbol)))
           (args (list (format "-%d" search-id) symbol)))
