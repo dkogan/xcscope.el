@@ -2458,7 +2458,8 @@ using the mouse."
 
 
 (defun cscope-search-one-database ()
-  "Pop a database entry from cscope-search-list and do a search there."
+  "Pop a database entry from `cscope-search-list' and do a search there."
+
   (let ( next-item options cscope-directory database-file outbuf done
 		   base-database-file-name)
     (setq outbuf (get-buffer-create cscope-output-buffer-name))
@@ -2489,12 +2490,9 @@ using the mouse."
 		      ))
 		(setq cscope-directory 
 		      (file-name-as-directory cscope-directory))
-		(if (not (member cscope-directory cscope-searched-dirs))
-		    (progn
-		      (setq cscope-searched-dirs (cons cscope-directory
-						       cscope-searched-dirs)
-			    done t)
-		      ))
+		(when (not (member cscope-directory cscope-searched-dirs))
+                  (push cscope-directory cscope-searched-dirs)
+                  (setq done t))
 		)
 	    (progn
 	      (if (and cscope-first-match-point
