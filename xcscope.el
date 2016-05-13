@@ -858,7 +858,7 @@ be removed by quitting the cscope buffer."
 (defvar cscope-display-buffer-args
   (and (not cscope-running-in-xemacs)
        (>= emacs-major-version 24)
-       '(display-buffer-use-some-window (inhibit-same-window . t)))
+       '((display-buffer-use-some-window (inhibit-same-window . t))))
   "Default arguments to `display-buffer'. This applies to ACTION
 and FRAME arguments of the newer `display-buffer' in >= GNU Emacs
 24. This controls how and where the *cscope* buffer is popped up.
