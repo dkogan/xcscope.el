@@ -723,8 +723,15 @@ rounded up to keep whole sets of cscope output"
   :group 'cscope)
 
 (defcustom cscope-program "cscope"
-  "The pathname of the cscope executable to use."
-  :type 'string
+  "The pathname of the cscope executable to use. This could be a
+string, or a function. If a function, then this is called every
+time the program path is needed to retrieve the path. The
+function takes no arguments, but can use variables such as
+`default-directory'. This is useful to find cscope in different
+places on different machines when using TRAMP."
+  :type '(choice
+	   (string :tag "Program path")
+	   (function :tag "Function that returns the program path"))
   :group 'cscope)
 
 
@@ -864,6 +871,19 @@ and FRAME arguments of the newer `display-buffer' in >= GNU Emacs
 24. This controls how and where the *cscope* buffer is popped up.
 By default I do not use the current window (so the *cscope*
 buffer stays active) and I try not to make new windows.")
+
+(defun cscope--get-cscope-program ()
+  "Retrieves the path to the cscope program. This is the value of
+the `cscope-program' variable, if it is a string, or the value
+returned by the `cscope-program' function, if it is a function."
+  (let ((program
+         (cond
+          ((stringp   cscope-program) cscope-program)
+          ((functionp cscope-program) (funcall cscope-program))
+          (t (error "cscope-program must be a string or function: %s"
+                    cscope-program)))))
+    (or program (error "cscope-program is nil!"))))
+
 
 (defun cscope-display-buffer-wrapper (buffer)
   "Calls `display-buffer' using
@@ -2550,7 +2570,7 @@ using the mouse."
               ;; a TTY
               (let ((process-connection-type nil))
                 (apply cscope-start-file-process "cscope" outbuf
-                       cscope-program
+                       (cscope--get-cscope-program)
                        (append (cscope-construct-custom-options-list) options))))
         (set-process-filter cscope-process 'cscope-process-filter)
         (set-process-sentinel cscope-process 'cscope-process-sentinel)
@@ -2730,7 +2750,7 @@ indexer"
           (indexcmds
            (concat "echo 'Indexing files ...'\n"
 
-                   (shell-quote-argument cscope-program)
+                   (shell-quote-argument (cscope--get-cscope-program))
                    " "
                    (mapconcat 'shell-quote-argument
                               (cscope-construct-custom-options-list)
