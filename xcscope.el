@@ -2575,7 +2575,7 @@ using the mouse."
         (set-process-filter cscope-process 'cscope-process-filter)
         (set-process-sentinel cscope-process 'cscope-process-sentinel)
         (setq cscope-last-output-point (point))
-        (process-kill-without-query cscope-process)
+        (set-process-query-on-exit-flag cscope-process nil)
         (if cscope-running-in-xemacs
             (setq modeline-process ": Searching ..."))
 	t
@@ -2785,7 +2785,7 @@ indexer"
     (set-process-filter cscope-unix-index-process 'cscope-unix-index-files-filter)
     (set-process-sentinel cscope-unix-index-process
                           'cscope-unix-index-files-sentinel)
-    (process-kill-without-query cscope-unix-index-process)))
+    (set-process-query-on-exit-flag cscope-unix-index-process nil)))
 
 
 (defun cscope-index-files (top-directory)
