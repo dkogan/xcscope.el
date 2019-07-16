@@ -2343,6 +2343,10 @@ using the mouse."
                           line (substring line (match-beginning 4)
                                           (match-end 4))
                           )
+
+		    ;; handling remote files
+		    (setq file (concat (file-remote-p default-directory) file))
+
                     ;; If the current file is not the same as the previous
                     ;; one ...
                     (if (not (and cscope-last-file
