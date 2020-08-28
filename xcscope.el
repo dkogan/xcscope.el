@@ -2342,7 +2342,7 @@ using the mouse."
 
             ;; This should always match.
             (if (string-match
-                 "^\\([^ \t]+\\)[ \t]+\\([^ \t]+\\)[ \t]+\\([0-9]+\\)[ \t]+\\(.*\\)\n"
+                 "^\\([^\t]+\\)[ \t]+\\([^ \t]+\\)[ \t]+\\([0-9]+\\)[ \t]+\\(.*\\)\n"
                  line)
                 (progn
                   (let (str)
@@ -2754,7 +2754,16 @@ indexer"
            (concat "echo 'Creating list of files to index ...'\n"
 
                    "find "
-                   (mapconcat 'identity findargs " ") " > "
+                   (mapconcat 'identity findargs " ") " | "
+                   ;; From cscope(1): filenames in the namefile that contain
+                   ;; whitespace have to be enclosed in "double quotes".
+                   ;; Inside such quoted filenames, any double-quote and
+                   ;; backslash characters have to be escaped by backslashes.
+                   (mapconcat 'identity
+                              (mapcar 'shell-quote-argument
+                                      '("sed" "-e" "s/\\\\/\\\\\\\\/g"
+                                        "-e" "s/\"/\\\\\"/g"
+                                        "-e" "s/.*/\"&\"/")) " ") " > "
                    (shell-quote-argument cscope-index-file) "\n"
 
                    "echo 'Creating list of files to index ... done'\n"))
