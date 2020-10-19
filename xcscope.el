@@ -758,6 +758,11 @@ places on different machines when using TRAMP."
   :type 'boolean
   :group 'cscope)
 
+(defcustom cscope-quit-output-buffer-window t
+  "If non-nil quit the window in which *cscope* buffer is displayed."
+  :type 'boolean
+  :group 'cscope)
+
 
 (defcustom cscope-stop-at-first-match-dir nil
   "If non-nil, stop searching through multiple databases if a match is found.
@@ -1196,6 +1201,7 @@ history for ALL search types.")
     ;; --- (The '---' indicates that this line corresponds to a menu separator.)
     (define-key map "b" 'cscope-display-buffer)
     (define-key map "B" 'cscope-display-buffer-toggle)
+    (define-key map "Q" 'cscope-quit-output-buffer-window-toggle)
     (define-key map "n" 'cscope-history-forward-line-current-result)
     (define-key map "N" 'cscope-history-forward-file-current-result)
     (define-key map "p" 'cscope-history-backward-line-current-result)
@@ -1331,6 +1337,10 @@ explicitly re-define the prefix key:
              (setq cscope-display-cscope-buffer
                    (not cscope-display-cscope-buffer))
              :style toggle :selected cscope-display-cscope-buffer ]
+           [ "Close the window where *cscope* buffer is"
+             (setq cscope-quit-output-buffer-window
+                   (not cscope-quit-output-buffer-window))
+             :style toggle :selected cscope-quit-output-buffer-window ]
            [ "Stop at first matching database"
              (setq cscope-stop-at-first-match-dir
                    (not cscope-stop-at-first-match-dir))
@@ -1825,6 +1835,15 @@ Point is not saved on mark ring."
   (message "The cscope-display-cscope-buffer variable is now %s."
            (if cscope-display-cscope-buffer "set" "unset")))
 
+
+(defun cscope-quit-output-buffer-window-toggle ()
+  "Toggle cscope-quit-output-buffer-window, which corresponds to
+\"Close the window where *cscope* buffer is\"."
+  (interactive)
+  (setq cscope-quit-output-buffer-window (not cscope-quit-output-buffer-window))
+  (message "The cscope-quit-output-buffer-window variable is now %s."
+           (if cscope-quit-output-buffer-window "set" "unset")))
+
 (defun cscope-navigate-and-show (forms &optional no-show)
   "This evaluates the navigation FORMS. These FORMS move the
 point in the *cscope* buffer, and this function shows the result
@@ -2114,7 +2133,9 @@ overrides the current directory, which would otherwise be used."
   "Clean up cscope, if necessary, and bury the buffer."
   (interactive)
   (cscope-cleanup-overlay-arrow)
-  (bury-buffer))
+  (if cscope-quit-output-buffer-window
+      (quit-window)
+    (bury-buffer)))
 
 
 
