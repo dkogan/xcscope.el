@@ -2114,7 +2114,7 @@ overrides the current directory, which would otherwise be used."
   "Clean up cscope, if necessary, and bury the buffer."
   (interactive)
   (cscope-cleanup-overlay-arrow)
-  (bury-buffer))
+  (quit-window))
 
 
 
