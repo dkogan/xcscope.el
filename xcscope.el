@@ -2342,7 +2342,7 @@ using the mouse."
 
             ;; This should always match.
             (if (string-match
-                 "^\\([^\t]+\\)[ \t]+\\([^ \t]+\\)[ \t]+\\([0-9]+\\)[ \t]+\\(.*\\)\n"
+                 "^\\([^ \t]+\\)[ \t]+\\([^ \t]+\\)[ \t]+\\([0-9]+\\)[ \t]+\\(.*\\)\n"
                  line)
                 (progn
                   (let (str)
