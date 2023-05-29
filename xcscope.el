@@ -500,8 +500,8 @@
 ;;
 ;;; Code:
 
-(require 'easymenu)
-
+(autoload 'easy-menu-define "easymenu")
+(require 'ring)
 
 (defgroup cscope nil
   "Cscope interface for (X)Emacs.
@@ -854,7 +854,8 @@ be removed by quitting the cscope buffer."
 
 
 (defcustom cscope-close-window-after-select nil
-  "If non-nil close the window showing the cscope buffer after an entry has been selected."
+  "If non-nil close the window showing the cscope buffer after an entry
+has been selected."
   :type 'boolean
   :group 'cscope)
 
@@ -1051,7 +1052,8 @@ selected for it")
 
 \\{cscope-list-entry-keymap}"
   (use-local-map cscope-list-entry-keymap)
-  (easy-menu-add cscope-buffer-menu cscope-list-entry-keymap)
+  (when (featurep 'xemacs)
+    (easy-menu-add cscope-buffer-menu cscope-list-entry-keymap))
   (setq mode-name "cscope"
 	major-mode 'cscope-list-entry-mode
 	overlay-arrow-string cscope-overlay-arrow-string)
@@ -1825,6 +1827,8 @@ Point is not saved on mark ring."
   (message "The cscope-display-cscope-buffer variable is now %s."
            (if cscope-display-cscope-buffer "set" "unset")))
 
+(defvar limit-to-current-result)
+
 (defun cscope-navigate-and-show (forms &optional no-show)
   "This evaluates the navigation FORMS. These FORMS move the
 point in the *cscope* buffer, and this function shows the result
@@ -2397,6 +2401,7 @@ using the mouse."
           (setq cscope-last-output-point (point)))
         (set-buffer-modified-p nil)))))
 
+(unless (featurep 'xemacs) (defvar modeline-process))
 
 (defun cscope-process-sentinel (process event)
   "Sentinel for when the cscope process dies."
@@ -3101,9 +3106,11 @@ functions more accessible.
 
 Key bindings:
 \\{cscope-minor-mode-keymap}"
-  nil nil cscope-minor-mode-keymap
+  :init-value nil :lighter nil :keymap cscope-minor-mode-keymap
   (when cscope-minor-mode
-    (easy-menu-add cscope-global-menu cscope-minor-mode-keymap)
+    (use-local-map cscope-list-entry-keymap)
+    (when (featurep 'xemacs)
+      (easy-menu-add cscope-global-menu cscope-minor-mode-keymap))
     (run-hooks 'cscope-minor-mode-hooks)))
 
 ;;;###autoload
