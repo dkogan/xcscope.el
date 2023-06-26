@@ -500,7 +500,7 @@
 ;;
 ;;; Code:
 
-(require 'easymenu)
+(autoload 'easy-menu-define "easymenu")
 
 
 (defgroup cscope nil
@@ -1051,7 +1051,8 @@ selected for it")
 
 \\{cscope-list-entry-keymap}"
   (use-local-map cscope-list-entry-keymap)
-  (easy-menu-add cscope-buffer-menu cscope-list-entry-keymap)
+  (when (featurep 'xemacs)
+    (easy-menu-add cscope-buffer-menu cscope-list-entry-keymap))
   (setq mode-name "cscope"
 	major-mode 'cscope-list-entry-mode
 	overlay-arrow-string cscope-overlay-arrow-string)
@@ -3101,9 +3102,10 @@ functions more accessible.
 
 Key bindings:
 \\{cscope-minor-mode-keymap}"
-  nil nil cscope-minor-mode-keymap
+  :init-value nil :lighter nil :keymap cscope-minor-mode-keymap
   (when cscope-minor-mode
-    (easy-menu-add cscope-global-menu cscope-minor-mode-keymap)
+    (when (featurep 'xemacs)
+      (easy-menu-add cscope-global-menu cscope-minor-mode-keymap))
     (run-hooks 'cscope-minor-mode-hooks)))
 
 ;;;###autoload
