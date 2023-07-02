@@ -3036,6 +3036,13 @@ file."
   (cscope-call "Finding functions calling:" 3 symbol)
   )
 
+(defun cscope-find-functions-calling-this-function-no-prompting ()
+  "Find a symbol's global definition without prompting."
+  (interactive)
+  (let ( (symbol (cscope-extract-symbol-at-cursor nil nil)))
+      (setq cscope-previous-user-search `(cscope-find-functions-calling-this-function-no-prompting ,symbol))
+    (cscope-call "Finding functions calling:" 3 symbol)
+    ))
 
 (defun cscope-find-this-text-string (symbol)
   "Locate where a text string occurs."
