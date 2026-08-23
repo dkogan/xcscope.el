@@ -2435,7 +2435,10 @@ using the mouse."
               (setq done nil)
             (insert "\nSearch complete.")
             (if cscope-display-times
-                (let ( (times (current-time)) cscope-stop elapsed-time )
+                (let ( (times
+                        (let ((current-time-list t))
+                          (current-time)) )
+                       cscope-stop elapsed-time )
                   (setq cscope-stop (+ (* (car times) 65536.0)
                                        (cadr times)
                                        (* (cadr (cdr times)) 1.0E-6)))
@@ -2631,7 +2634,9 @@ this is."
       (setq cscope-marker (point-marker)))
     (with-current-buffer outbuf
       (if cscope-display-times
-          (let ( (times (current-time)) )
+          (let ( (times
+                  (let ((current-time-list t))
+                          (current-time))) )
             (setq cscope-start-time (+ (* (car times) 65536.0) (cadr times)
                                        (* (cadr (cdr times)) 1.0E-6)))))
       (setq default-directory directory
